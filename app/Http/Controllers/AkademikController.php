@@ -101,10 +101,8 @@ public function storeGrade(Request $request)
 
 public function indexRole()
 {
-    // Mengambil data dari tabel roles yang baru kamu buat
-    $roles = DB::table('roles')->get();
-    
-    return view('roles.index', compact('roles'));
+    // Mengarahkan ke file resources/views/roles/index.blade.php
+    return view('roles.index');
 }
 
 public function storeNilai(Request $request) {

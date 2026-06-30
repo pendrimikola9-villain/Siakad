@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold">Input Nilai Mahasiswa</h2>
+        <h2 class="text-primary fw-bold">Input & Manajemen Nilai Mahasiswa</h2>
         <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNilai">
             <i class="bi bi-plus-square me-2"></i>Input Nilai Baru
         </button>
@@ -18,31 +18,51 @@
 
     <div class="card shadow border-0">
         <div class="card-body">
-            <table class="table table-striped">
-                <thead class="table-dark">
+            <table class="table table-striped align-middle">
+                <thead class="table-light">
                     <tr>
                         <th>No</th>
                         <th>Nama Mahasiswa</th>
                         <th>Matakuliah</th>
                         <th>SKS</th>
                         <th>Nilai</th>
-                        <th>Grade</th>
+                        <th class="text-center">Grade</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($grades as $key => $g)
-                    <tr>
+                    <tr id="row-nilai-{{ $g->id }}">
                         <td>{{ $key + 1 }}</td>
-                        <td>{{ $g->nama }}</td>
-                        <td>{{ $g->nama_mk }}</td>
-                        <td>{{ $g->sks }}</td>
+                        <td>{{ $g->mahasiswa->nama ?? $g->nama }}</td>
+                        <td>{{ $g->course->nama_mk ?? $g->nama_mk }}</td>
+                        <td>{{ $g->course->sks ?? $g->sks ?? '2' }} SKS</td>
                         <td>{{ $g->nilai }}</td>
-                        <td>
-                            @if($g->nilai >= 80) <span class="badge bg-success">A</span>
-                            @elseif($g->nilai >= 70) <span class="badge bg-primary">B</span>
-                            @elseif($g->nilai >= 60) <span class="badge bg-warning text-dark">C</span>
-                            @else <span class="badge bg-danger">D</span>
+                        <td class="text-center">
+                            <span class="badge bg-primary">{{ $g->grade }}</span>
+                        </td>
+                        
+                        <td class="text-center" id="status-kunci-{{ $g->id }}">
+                            @if(($g->status_kunci ?? 'Draft') == 'Locked')
+                                <span class="badge bg-success">Locked (Sah)</span>
+                            @else
+                                <span class="badge bg-warning text-dark">Draft</span>
                             @endif
+                        </td>
+
+                        <td class="text-center">
+                            <div id="aksi-container-{{ $g->id }}">
+                                @if(($g->status_kunci ?? 'Draft') == 'Draft')
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="kunciNilaiPermanen({{ $g->id }}, '{{ $g->mahasiswa->nama ?? $g->nama }}')">
+                                        <i class="bi bi-unlock-fill"></i> Kunci
+                                    </button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-warning text-white fw-bold shadow-sm" onclick="unlockNilaiAdmin({{ $g->id }}, '{{ $g->mahasiswa->nama ?? $g->nama }}')">
+                                        <i class="bi bi-key-fill"></i> Buka Kunci
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -52,7 +72,6 @@
     </div>
 </div>
 
-<!-- Modal Input Nilai -->
 <div class="modal fade" id="modalNilai" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -73,11 +92,13 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="fw-bold">Pilih Matakuliah</label>
+                        <label class="fw-bold">Mata Kuliah</label>
                         <select name="course_id" class="form-select" required>
-                            <option value="">-- Pilih Matakuliah --</option>
+                            <option value="">-- Pilih Mata Kuliah --</option>
                             @foreach($courses as $c)
-                                <option value="{{ $c->id }}">{{ $c->nama_mk }} ({{ $c->sks }} SKS)</option>
+                                @if($c->status_validasi === 'ACC')
+                                    <option value="{{ $c->id }}">{{ $c->kode_mk }} - {{ $c->nama_mk }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -94,4 +115,58 @@
         </div>
     </div>
 </div>
+
+<script>
+    // 1. FUNGSI LOCK DOSEN
+    function kunciNilaiPermanen(id, namaMhs) {
+        if (confirm(`Kunci nilai untuk ${namaMhs}? Setelah dikunci, nilai sah dan tidak bisa diubah oleh dosen.`)) {
+            fetch(`/dosen/input-nilai/kunci/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('status-kunci-' + id).innerHTML = '<span class="badge bg-success">Locked (Sah)</span>';
+                    document.getElementById('aksi-container-' + id).innerHTML = `
+                        <button type="button" class="btn btn-sm btn-warning text-white fw-bold shadow-sm" onclick="unlockNilaiAdmin(${id}, '${namaMhs}')">
+                            <i class="bi bi-key-fill"></i> Buka Kunci
+                        </button>
+                    `;
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
+    // 2. FUNGSI UNLOCK ADMIN
+    function unlockNilaiAdmin(id, namaMhs) {
+        if (confirm(`Apakah Anda (Admin) ingin membuka kembali kunci nilai untuk ${namaMhs}?`)) {
+            fetch(`/admin/nilai/unlock/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('status-kunci-' + id).innerHTML = '<span class="badge bg-warning text-dark">Draft</span>';
+                    document.getElementById('aksi-container-' + id).innerHTML = `
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="kunciNilaiPermanen(${id}, '${namaMhs}')">
+                            <i class="bi bi-unlock-fill"></i> Kunci
+                        </button>
+                    `;
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    }
+</script>
 @endsection

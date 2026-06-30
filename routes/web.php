@@ -7,6 +7,15 @@ use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ConsultationLogController;
+use App\Http\Controllers\AuthController;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\KurikulumController;
+use App\Http\Controllers\GradeController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes - Sistem Informasi Akademik
@@ -14,7 +23,10 @@ use App\Http\Controllers\ConsultationLogController;
 */
 
 // 1. HALAMAN UTAMA (DASHBOARD)
-Route::get('/', [MahasiswaController::class, 'dashboard'])->name('dashboard');
+// Pastikan rute dashboard kamu dibungkus atau ditempeli middleware auth
+Route::get('/', [App\Http\Controllers\MahasiswaController::class, 'dashboard'])
+    ->middleware('auth')
+    ->name('dashboard');
 
 
 // 2. MANAGEMENT MAHASISWA (CRUD)
@@ -110,3 +122,76 @@ Route::get('/bimbingan/{id}/edit', [ConsultationLogController::class, 'edit'])->
 Route::put('/bimbingan/{id}/update', [ConsultationLogController::class, 'update'])->name('bimbingan.update');
 Route::delete('/bimbingan/{id}/hapus', [ConsultationLogController::class, 'destroy'])->name('bimbingan.destroy');
 
+// Tampilan Halaman Login & Register
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
+// Proses Backend Auth
+Route::post('/login', [AuthController::class, 'login'])->name('login.process');
+Route::post('/register', [AuthController::class, 'register'])->name('register.process');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+/// 1. Rute untuk menampilkan halaman input email (Lupa Password)
+Route::get('/forgot-password', function () {
+    return view('auth.passwords.email');
+})->name('password.request');
+
+// 2. Rute mandiri untuk memproses pengiriman link reset ke Mailtrap
+Route::post('/forgot-password', function (Request $request) {
+    $request->validate(['email' => 'required|email']);
+
+    // Mengirimkan instruksi reset password bawaan Laravel via email
+    $status = Password::sendResetLink($request->only('email'));
+
+    // Jika sukses, kembali dengan pesan status
+    return $status === Password::RESET_LINK_SENT
+        ? back()->with('status', __($status))
+        : back()->withErrors(['email' => __($status)]);
+})->name('password.email');
+
+Route::middleware(['auth'])->group(function () {
+    // Rute yang sudah ada milikmu...
+
+    // RUTE BARU SESI 1: Fitur Mahasiswa
+    Route::get('/mahasiswa/presensi', [App\Http\Controllers\MahasiswaController::class, 'presensi'])
+        ->name('mahasiswa.presensi');
+        
+    Route::get('/mahasiswa/tugas', [App\Http\Controllers\MahasiswaController::class, 'tugas'])
+        ->name('mahasiswa.tugas');
+});
+
+Route::get('/mahasiswa/krs', [MahasiswaController::class, 'krsIndex'])->name('mahasiswa.krs');
+Route::post('/mahasiswa/krs/simpan', [MahasiswaController::class, 'krsSimpan'])->name('mahasiswa.krs.simpan');
+
+Route::get('/mahasiswa/siplar', [MahasiswaController::class, 'siplarIndex'])->name('mahasiswa.siplar');
+Route::get('/mahasiswa/sibimbing', [MahasiswaController::class, 'sibimbingIndex'])->name('mahasiswa.sibimbing');
+Route::post('/mahasiswa/sibimbing/store', [MahasiswaController::class, 'sibimbingStore'])->name('bimbingan.store');
+
+// Rute untuk menampilkan halaman hak akses & tabel user
+Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+
+// Rute untuk memproses perubahan role via dropdown select
+Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+
+// =========================================================================
+// 🔍 RUTE KHUSUS MANAJEMEN AKADEMIK KAPRODI & ADMIN
+// =========================================================================
+
+// 1. Tampilan Halaman Validasi Kurikulum (Nama disesuaikan dengan isi sidebar app.blade.php)
+Route::get('/kurikulum/validasi', [App\Http\Controllers\KurikulumController::class, 'index'])->name('kaprodi.kurikulum');
+
+// 2. Proses AJAX Update Status Kurikulum ke Database
+Route::post('/kurikulum/update-status/{id}', [App\Http\Controllers\KurikulumController::class, 'validasi'])->name('kurikulum.updateStatus');
+
+// 3. Tampilan Halaman Laporan Akademik
+Route::get('/laporan/akademik', [App\Http\Controllers\MahasiswaController::class, 'laporanAkademik'])->name('kaprodi.laporan');
+
+// 4. Tampilan Halaman Input Nilai Berstatus Pending (Admin/Operator)
+Route::get('/admin/input-nilai', [App\Http\Controllers\KurikulumController::class, 'inputNilaiForm'])->name('nilai.index');
+
+// Jalur Input Nilai Versi Dosen (Alur 1)
+Route::get('/dosen/input-nilai', [GradeController::class, 'index'])->name('dosen.nilai.index');
+Route::post('/dosen/input-nilai/store', [GradeController::class, 'store'])->name('dosen.nilai.store');
+Route::post('/dosen/input-nilai/kunci/{id}', [GradeController::class, 'kunciNilai'])->name('dosen.nilai.kunci');
+Route::post('/admin/nilai/unlock/{id}', [App\Http\Controllers\GradeController::class, 'unlockNilai'])->name('admin.nilai.unlock');

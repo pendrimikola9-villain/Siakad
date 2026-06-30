@@ -11,6 +11,7 @@
     <style>
         body {
             background-color: #f8f9fa;
+            overflow-x: hidden;
         }
         #sidebar-wrapper {
             min-height: 100vh;
@@ -20,69 +21,159 @@
         .list-group-item {
             border: none;
             padding: 12px 20px;
+            transition: all 0.2s ease;
         }
         .list-group-item:hover {
             background-color: #343a40 !important;
+            color: #fff !important;
+        }
+        #page-content-wrapper {
+            min-width: 0;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
     <div class="d-flex" id="wrapper">
+        
         <div class="bg-dark text-white" id="sidebar-wrapper">
-            <div class="sidebar-heading p-4 text-center border-bottom border-secondary">
-                <h4 class="fw-bold mb-0 text-truncate">SIAKAD</h4>
+            <div class="sidebar-heading text-center py-4 primary-text fs-4 fw-bold text-uppercase border-bottom">
+                SIAKAD UMB
             </div>
             
-            <div class="list-group list-group-flush mt-3">
+          <div class="list-group list-group-flush mt-3">
+                
                 <a href="/" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    <i class="bi bi-speedometer2 text-white me-2"></i> Dashboard
                 </a>
 
-                <a href="/data-mahasiswa" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-people me-2"></i> Data Mahasiswa
-                </a>
+              @if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'))
+                    <div class="small text-white-50 text-uppercase px-4 mt-3 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Master Data</div>
+                    <a href="/data-mahasiswa" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-people text-primary me-2"></i> Data Mahasiswa
+                    </a>
+                    <a href="{{ route('dosen.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-person-workspace text-success me-2"></i> Data Dosen
+                    </a>
+                    <a href="{{ route('room.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-door-open text-info me-2"></i> Data Ruangan / Lab
+                    </a>
+                    <a href="{{ route('courses.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-book text-warning me-2"></i> Mata Kuliah
+                    </a>
+                    <a href="{{ route('roles.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-shield-lock text-danger me-2"></i> Hak Akses (Role)
+                    </a>
+                @endif
 
-                <a href="{{ route('dosen.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-person-workspace me-2"></i> Data Dosen
-                </a>
+               @if(Auth::check() && ( Auth::user()->role === 'admin' || Auth::user()->role === 'operator'))
+                    <div class="small text-white-50 text-uppercase px-4 mt-3 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Fakultas Monitoring</div>
+                    <a href="{{ route('jadwal.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-calendar3 me-2 text-warning"></i> Monitor SIPLAR
+                    </a>
+                    <a href="{{ route('bimbingan.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-chat-square-text me-2 text-info"></i> Monitor SIBIMBING
+                    </a>
+                @endif
 
-                <a href="{{ route('room.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-door-open me-2"></i> Data Ruangan / Lab
-                </a>
+                @if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'))
+                   <div class="small text-white-50 text-uppercase px-4 mt-3 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Manajemen Akademik</div>
+                    <a href="{{ route('kaprodi.kurikulum') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-check2-square text-warning me-2"></i> Validasi Kurikulum
+                    </a>
+                    <a href="{{ route('kaprodi.laporan') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-file-earmark-bar-graph text-info me-2"></i> Laporan Academic
+                    </a>
+                @endif
 
-                <a href="{{ route('courses.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-book me-2"></i> Mata Kuliah
-                </a>
+                @if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'|| Auth::user()->role === 'dosen'))
+                    <a href="{{ route('grades.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-pencil-square text-danger me-2"></i> Input Nilai
+                    </a>
+                    <a href="{{ route('jadwal.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-calendar3 text-primary me-2"></i> Jadwal Kuliah
+                    </a>
+                    <a href="{{ route('bimbingan.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-chat-square-text text-success me-2"></i> Log Bimbingan (SIBIMBING)
+                    </a>
+                @endif
 
-                <a href="{{ route('grades.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-pencil-square me-2"></i> Input Nilai
-                </a>
+                @if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'|| Auth::user()->role === 'dosen'|| Auth::user()->role === 'mahasiswa'))
+                    <div class="small text-white-50 text-uppercase px-4 mt-3 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Fitur Academic</div>
+                    
+                    <a href="{{ route('mahasiswa.siplar') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-calendar3 me-2 text-primary"></i> Jadwal Kuliah 
+                    </a>
 
-                <a href="{{ route('jadwal.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-calendar3 me-2"></i> Jadwal Kuliah
-                </a>
+                    <a href="{{ route('mahasiswa.presensi') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-calendar-check me-2 text-info"></i> Presensi Kuliah
+                    </a>
 
-                <a href="{{ route('bimbingan.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-chat-square-text me-2"></i> Log Bimbingan (SIBIMBING)
-                </a>
+                    <a href="{{ route('mahasiswa.tugas') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-journal-arrow-up me-2 text-success"></i> Bahan & Tugas
+                    </a>
+                    
+                    <a href="{{ route('mahasiswa.krs') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-book me-2 text-danger"></i> Pengisian KRS
+                    </a>
+                    
+                    <a href="{{ route('nilai.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-file-earmark-bar-graph me-2 text-warning"></i> Tampilan Nilai
+                    </a>
 
-                <a href="{{ route('nilai.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> Tampilan Nilai
-                </a>
+                    <a href="{{ route('mahasiswa.sibimbing') }}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="bi bi-chat-square-text me-2 text-white"></i> Log Bimbingan 
+                    </a>
+                @endif
 
-                <a href="{{ route('roles.index') }}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="bi bi-shield-lock me-2"></i> Hak Akses (Role)
-                </a>
+                <form action="{{ route('logout') }}" method="POST" class="list-group-item bg-dark p-0 mt-4 border-top border-secondary border-opacity-20">
+                    @csrf
+                    <button type="submit" class="btn btn-link text-white text-start w-100 h-100 text-decoration-none py-3 px-4 shadow-none">
+                        <i class="bi bi-box-arrow-right text-danger me-2"></i> Keluar Portal
+                    </button>
+                </form>
             </div>
-        </div>
+        </div> 
 
-        <div class="w-100 flex-grow-1">
+        <div id="page-content-wrapper" class="flex-grow-1">
+            
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3 shadow-sm">
                 <div class="container-fluid p-0">
-                    <span class="navbar-brand fw-semibold text-dark">Sistem Informasi Akademik</span>
-                    <div class="ms-auto fw-bold text-primary">
-                        <i class="bi bi-person-circle me-1"></i> Admin UMB
+                    <span class="navbar-brand fw-semibold text-dark fs-5">Sistem Informasi Akademik (SIAKAD)</span>
+                    
+                    <div class="ms-auto fw-bold text-primary d-flex align-items-center">
+                        
+                       <div class="dropdown me-4">
+    <a href="#" class="text-secondary position-relative text-decoration-none" id="dropdownMenuNotif" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bell fs-4"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem; padding: 4px 6px;">
+            0
+        </span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 mt-2" aria-labelledby="dropdownMenuNotif" style="width: 300px; font-size: 0.85rem;">
+        <li class="p-2 border-bottom fw-bold text-dark">Pemberitahuan Terbaru</li>
+        
+        <li>
+            <div class="p-3 text-center text-muted small">
+                <i class="bi bi-bell-slash d-block fs-4 mb-2 text-black-50"></i>
+                Belum ada pemberitahuan baru.
+            </div>
+        </li>
+        
+        </ul>
+</div>
+
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-circle me-2 fs-4 text-secondary"></i>
+                            <div>
+                                <span class="d-block text-dark lh-1 fs-6 fw-bold">{{ Auth::user()->name ?? 'User UMB' }}</span>
+                                <small class="text-muted fw-normal text-capitalize" style="font-size: 0.75rem;">
+                                    Panel: <span class="badge @if(Auth::user()->role === 'operator') bg-dark text-white @else bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-20 @endif text-capitalize">{{ Auth::user()->role }}</span>
+                                </small>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </nav>
@@ -90,8 +181,9 @@
             <div class="container-fluid p-4">
                 @yield('content')
             </div>
-        </div>
-    </div>
+            
+        </div> 
+    </div> 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

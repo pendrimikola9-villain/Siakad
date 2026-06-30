@@ -13,12 +13,15 @@ public function up(): void
 {
     Schema::create('grades', function (Blueprint $table) {
         $table->id();
-        // Menggunakan foreignId agar Laravel tahu ini adalah relasi/koneksi antar tabel
         $table->foreignId('mahasiswa_id')->constrained('mahasiswas')->onDelete('cascade');
         $table->foreignId('course_id')->constrained('courses')->onDelete('cascade');
         
         $table->integer('nilai'); 
-        $table->char('grade', 2)->nullable(); // Tambahan untuk menyimpan nilai huruf (A/B/C)
+        $table->char('grade', 2)->nullable(); // Menyimpan nilai huruf (A, B, C, dll)
+        
+        // 🔍 Tambahkan kolom status kunci untuk Dosen (Draft / Locked)
+        $table->enum('status_kunci', ['Draft', 'Locked'])->default('Draft');
+        
         $table->timestamps();
     });
 }
