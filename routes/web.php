@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Password;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\KurikulumController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\KrsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,9 +24,17 @@ use App\Http\Controllers\GradeController;
 |--------------------------------------------------------------------------
 */
 
-// 1. HALAMAN UTAMA (DASHBOARD)
-// Pastikan rute dashboard kamu dibungkus atau ditempeli middleware auth
-Route::get('/', [App\Http\Controllers\MahasiswaController::class, 'dashboard'])
+// =========================================================================
+// 🟢 RUTE UTAMA: PINTU MASUK LANDING PAGE KAMPUS UMB
+// =========================================================================
+Route::get('/', function () {
+    return view('welcome_page');
+})->name('landing');
+
+// =========================================================================
+// 🟢 PENGALIHAN: URL DASHBOARD INTERNAL (DIUBAH DARI '/' MENJADI '/dashboard')
+// =========================================================================
+Route::get('/dashboard', [MahasiswaController::class, 'dashboard'])
     ->middleware('auth')
     ->name('dashboard');
 
@@ -127,6 +137,11 @@ Route::get('/login', function () {
     return view('auth.login');
 })->name('login');
 
+// 🟢 TAMBAHKAN RUTE INI (Untuk menampilkan halaman form register)
+Route::get('/register', function () {
+    return view('auth.register'); // Pastikan kamu punya file resources/views/auth/register.blade.php
+})->name('register');
+
 // Proses Backend Auth
 Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 Route::post('/register', [AuthController::class, 'register'])->name('register.process');
@@ -153,10 +168,7 @@ Route::post('/forgot-password', function (Request $request) {
 Route::middleware(['auth'])->group(function () {
     // Rute yang sudah ada milikmu...
 
-    // RUTE BARU SESI 1: Fitur Mahasiswa
-    Route::get('/mahasiswa/presensi', [App\Http\Controllers\MahasiswaController::class, 'presensi'])
-        ->name('mahasiswa.presensi');
-        
+    // RUTE BARU SESI 1: Fitur Mahasisw
     Route::get('/mahasiswa/tugas', [App\Http\Controllers\MahasiswaController::class, 'tugas'])
         ->name('mahasiswa.tugas');
 });
@@ -195,3 +207,46 @@ Route::get('/dosen/input-nilai', [GradeController::class, 'index'])->name('dosen
 Route::post('/dosen/input-nilai/store', [GradeController::class, 'store'])->name('dosen.nilai.store');
 Route::post('/dosen/input-nilai/kunci/{id}', [GradeController::class, 'kunciNilai'])->name('dosen.nilai.kunci');
 Route::post('/admin/nilai/unlock/{id}', [App\Http\Controllers\GradeController::class, 'unlockNilai'])->name('admin.nilai.unlock');
+
+// Menggunakan Resource, tapi nama URL dan nama rutenya dialiaskan menjadi 'jadwal'
+Route::resource('jadwal', ClassScheduleController::class)->names([
+    'index'   => 'jadwal.index',
+    'create'  => 'jadwal.create',
+    'store'   => 'jadwal.store',
+    'edit'    => 'jadwal.edit',
+    'update'  => 'jadwal.update',
+    'destroy' => 'jadwal.destroy',
+]);
+
+Route::post('/jadwal/update-status/{id}', [App\Http\Controllers\ClassScheduleController::class, 'updateStatus'])->name('jadwal.updateStatus');
+
+// 🟢 JALUR BARU: Hubungkan URL presensi ke PresensiController baru kita
+// 🟢 Tambahkan ->middleware('auth') di ujung rute presensi kamu
+Route::get('/mahasiswa/presensi', [PresensiController::class, 'index'])
+    ->name('mahasiswa.presensi')
+    ->middleware('auth');
+
+Route::post('/presensi/store-massal', [PresensiController::class, 'storeMassal'])
+    ->name('presensi.storeMassal')
+    ->middleware('auth');
+
+// Route untuk melayani penarikan data mahasiswa via AJAX filter modal
+Route::get('/presensi/get-mahasiswa', [App\Http\Controllers\PresensiController::class, 'getMahasiswaByFilter'])->name('presensi.getMahasiswa');
+
+Route::middleware(['auth'])->group(function () {
+    // 🟢 GANTI nama rute di bawah ini menjadi 'mahasiswa.krs'
+    Route::get('/mahasiswa/krs', [KrsController::class, 'index'])->name('mahasiswa.krs');
+    Route::post('/mahasiswa/krs/simpan', [KrsController::class, 'simpan'])->name('mahasiswa.krs.simpan');
+   Route::post('/krs/approve/{id}', [KrsController::class, 'approve'])->name('krs.approve');
+});
+
+// 🟢 TAMBAHKAN ROUTE STORE NILAI INI
+Route::post('/admin/input-nilai/store', [App\Http\Controllers\KurikulumController::class, 'store'])->name('nilai.store');
+// 🟢 TAMBAHKAN ROUTE UPDATE STATUS BIMBINGAN INI
+Route::post('/bimbingan/status/{id}/{status}', [App\Http\Controllers\MahasiswaController::class, 'sibimbingUpdateStatus'])->name('bimbingan.status');
+
+// Rute untuk Dosen/Admin membuat tugas baru
+Route::post('/tugas/store', [App\Http\Controllers\TugasController::class, 'store'])->name('tugas.store');
+
+// Rute untuk Mahasiswa mengumpulkan file tugas jawaban
+Route::post('/tugas/kumpul/{id}', [App\Http\Controllers\TugasController::class, 'kumpulTugas'])->name('tugas.kumpul');

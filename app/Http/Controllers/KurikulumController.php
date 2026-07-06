@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Course; // 🔍 KUNCI PERBAIKAN: Tambahkan baris ini jika belum ada!
+use App\Models\Course; 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,7 +14,6 @@ class KurikulumController extends Controller
     // =========================================================================
     public function index()
     {
-        // Sekarang sistem tidak akan bingung lagi mencari di mana model Course berada
         $courses = Course::orderBy('kode_mk', 'asc')->get();
         return view('kaprodi.kurikulum', compact('courses'));
     }
@@ -30,7 +29,7 @@ class KurikulumController extends Controller
         if ($request->status === 'Ditolak') {
             $course->catatan_tolak = $request->catatan;
         } else {
-            $course->catatan_tolak = null; // Bersihkan catatan jika di-ACC
+            $course->catatan_tolak = null;
         }
         
         $course->save();
@@ -42,39 +41,33 @@ class KurikulumController extends Controller
     }
 
     // =========================================================================
-    // 3. SISI ADMIN & OPERATOR: HALAMAN INPUT NILAI BERSTATUS PENDING
+    // 3. SISI ADMIN & OPERATOR: HALAMAN INPUT & TAMPILAN NILAI AKADEMIK
     // =========================================================================
     public function inputNilaiForm()
     {
-        // Ambil data mahasiswa dan mata kuliah yang sudah di-ACC untuk dropdown form
-        $students = DB::table('mahasiswas')->orderBy('nama', 'asc')->get();
-        $courses = Course::where('status_validasi', 'ACC')->orderBy('nama_mk', 'asc')->get(); 
+        // 1. Ambil data master untuk dropdown modal input nilai baru
+        $mahasiswa = DB::table('mahasiswas')->orderBy('nama', 'asc')->get();
+        $courses = DB::table('courses')->where('status_validasi', 'ACC')->orderBy('nama_mk', 'asc')->get(); 
         
-        // Ambil riwayat nilai dari tabel 'consultation_logs' atau tabel khusus nilai jika ada.
-        // Sementara kita buat array dummy penampung riwayat agar halaman aman dan tidak crash.
-        $grades = [
-            (object)[
-                'id' => 1,
-                'nim' => '2455201110020',
-                'nama_mhs' => 'PENDRI MIKOLA',
-                'nama_mk' => 'Pemrograman Web 2',
-                'nilai_angka' => 88.50,
-                'nilai_huruf' => 'A',
-                'status_nilai' => 'Pending',
-                'catatan_revisi' => null
-            ],
-            (object)[
-                'id' => 2,
-                'nim' => '2455201110002',
-                'nama_mhs' => 'AKMAL MAULANA YUSUF',
-                'nama_mk' => 'Rekayasa Perangkat Lunak',
-                'nilai_angka' => 76.00,
-                'nilai_huruf' => 'B+',
-                'status_nilai' => 'Sah (ACC)',
-                'catatan_revisi' => null
-            ]
-        ];
+        // 2. Tarik data transaksi riil dari tabel nilai (hubungkan ke tabel mahasiswas dan courses)
+        // Catatan: Ganti 'grades' di bawah ini sesuai nama asli tabel transaksi nilai kamu di HeidiSQL jika berbeda
+        $grades = DB::table('grades')
+            ->join('mahasiswas', 'grades.mahasiswa_id', '=', 'mahasiswas.id')
+            ->join('courses', 'grades.course_id', '=', 'courses.id')
+            ->select(
+                'grades.id',
+                'mahasiswas.nama',
+                'mahasiswas.nim',
+                'courses.nama_mk',
+                'courses.sks',
+                'grades.nilai',
+                'grades.grade',
+                'grades.status_kunci'
+            )
+            ->get();
 
-        return view('admin.input_nilai', compact('students', 'courses', 'grades'));
+        // 3. 🟢 KUNCI PENTING: Jika file view kamu berada langsung di folder 'resources/views/tampil-nilai.blade.php',
+        // maka ganti 'admin.input_nilai' di bawah ini menjadi 'tampil-nilai'
+        return view('grades.index-blade', compact('mahasiswa', 'courses', 'grades'));
     }
 }

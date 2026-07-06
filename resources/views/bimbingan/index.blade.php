@@ -11,7 +11,8 @@
                     <p class="mb-0 opacity-75">Manajemen logbook bimbingan, verifikasi draf akademik (Skripsi/PKL/Magang), serta persetujuan janji temu mahasiswa.</p>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    @if(Auth::check() && Auth::user()->role === 'mahasiswa')
+                    <!-- 🟢 Perbaikan Toleransi Role Huruf Kecil/Besar -->
+                    @if(Auth::check() && strtolower(Auth::user()->role) === 'mahasiswa')
                         <a href="{{ route('bimbingan.create') }}" class="btn bg-white text-primary fw-bold px-3 py-2 rounded-3 shadow-sm">
                             <i class="bi bi-plus-circle me-1"></i> Ajukan Konsultasi
                         </a>
@@ -23,7 +24,7 @@
 
     @if(session('success'))
         <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4 p-3">
-            <i class="fas fa-check-circle text-success me-2"></i>{{ session('success') }}
+            <i class="bi bi-check-circle-fill text-success me-2"></i>{{ session('success') }}
         </div>
     @endif
 
@@ -91,24 +92,29 @@
 
                                 <td class="text-center py-3">
                                     <div class="d-flex justify-content-center gap-1">
-                                        @if(Auth::check() && (Auth::user()->role === 'dosen' || Auth::user()->role === 'kaprodi') && $log->status_bimbingan === 'Menunggu Validasi')
-                                            <form action="#" method="POST" class="d-inline">
+                                        <!-- 🟢 Perbaikan Pengecekan Akses Global Menggunakan strtolower -->
+                                        @if(Auth::check() && in_array(strtolower(Auth::user()->role), ['dosen', 'kaprodi']) && $log->status_bimbingan === 'Menunggu Validasi')
+                                            
+                                            <!-- Form untuk Tombol ACC -->
+                                            <form action="{{ route('bimbingan.status', [$log->id, 'ACC']) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-success rounded-2 fw-bold px-2 py-1 text-white shadow-sm" title="Setujui & ACC">
                                                     <i class="bi bi-check-lg"></i> ACC
                                                 </button>
                                             </form>
                                             
+                                            <!-- Tombol Pemicu Modal Tolak -->
                                             <button type="button" class="btn btn-sm btn-danger rounded-2 fw-bold px-2 py-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTolak{{ $log->id }}" title="Tolak Pengajuan">
                                                 <i class="bi bi-x-lg"></i> Tolak
                                             </button>
                                         @else
-                                            <span class="text-muted small">- Selesai Diproses -</span>
+                                            <span class="text-muted small"><i class="bi bi-lock-fill me-1"></i>Selesai / Terkunci</span>
                                         @endif
                                     </div>
                                 </td>
                             </tr>
 
+                            <!-- MODAL ALASAN PENOLAKAN -->
                             <div class="modal fade" id="modalTolak{{ $log->id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content border-0 shadow rounded-4">
@@ -116,14 +122,15 @@
                                             <h5 class="modal-title fw-bold text-danger"><i class="bi bi-chat-left-x-fill me-2"></i>Berikan Alasan Penolakan</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
-                                        <form action="#" method="POST">
+                                        <!-- 🟢 Form Aksi Arahkan ke Rute Proses Update Status -->
+                                        <form action="{{ route('bimbingan.status', [$log->id, 'Ditolak']) }}" method="POST">
                                             @csrf
                                             <div class="modal-body p-4">
                                                 <p class="text-secondary small mb-3">Tolak bimbingan dari mahasiswa: <strong class="text-dark">{{ $log->nama_mahasiswa }}</strong> pada topik <strong class="text-dark">"{{ $log->topik_bimbingan }}"</strong>.</p>
                                                 
                                                 <div class="mb-1">
                                                     <label class="form-label fw-bold text-secondary">Alasan Penolakan <span class="text-danger">*</span></label>
-                                                    <textarea name="alasan_penolakan" class="form-control rounded-3" rows="4" placeholder="Contoh: Maaf hari ini saya ada seminar luar kota, silahkan ajukan kembali tanggal bimbingannya untuk besok pagi..." required></textarea>
+                                                    <textarea name="alasan_penolakan" class="form-control rounded-3" rows="4" placeholder="Tulis alasan penolakan di sini..." required></textarea>
                                                 </div>
                                             </div>
                                             <div class="modal-footer bg-light border-0 p-3 px-4">

@@ -46,7 +46,7 @@
                                 </td>
                                 <td class="text-center py-3">
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-20 px-2.5 py-1.5 rounded-3 fw-bold">
-                                        {{ $item->sks }} SKS
+                                        {{ $item->sks ?? 3 }} SKS
                                     </span>
                                 </td>
                                 <td class="text-center py-3">

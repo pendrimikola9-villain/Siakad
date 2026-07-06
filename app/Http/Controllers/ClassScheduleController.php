@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class ClassScheduleController extends Controller
 {
-    // 1. Tampilkan Data Hasil Join
-    public function index()
+   // 1. Tampilkan Data Hasil Join (Pastikan mengarah ke view 'jadwal.index')
+   public function index()
     {
         $schedules = DB::table('class_schedules')
             ->join('courses', 'class_schedules.course_id', '=', 'courses.id')
@@ -19,22 +19,29 @@ class ClassScheduleController extends Controller
                 'courses.kode_mk',
                 'courses.nama_mk',
                 'courses.sks',
+                'courses.status_validasi',
                 'lecturers.nama_dosen',
                 'rooms.nama_ruangan'
             )
             ->get();
 
-        return view('schedule.index', compact('schedules'));
+        // Tarik data pendukung untuk modal
+        $courses = DB::table('courses')->where('status_validasi', 'ACC')->get();
+        $lecturers = DB::table('lecturers')->get();
+        $rooms = DB::table('rooms')->get();
+
+        return view('schedule.index', compact('schedules', 'courses', 'lecturers', 'rooms'));
     }
 
     // 2. Tampilkan Form Tambah Jadwal (Mengambil Data Master untuk Dropdown)
     public function create()
     {
-        $courses = DB::table('courses')->get();
+        // 🔍 PERBAIKAN: Hanya mengambil mata kuliah yang sudah di-ACC Kaprodi
+        $courses = DB::table('courses')->where('status_validasi', 'ACC')->get();
         $lecturers = DB::table('lecturers')->get();
         $rooms = DB::table('rooms')->get();
 
-        return view('schedule.create', compact('courses', 'lecturers', 'rooms'));
+      return view('schedule.create', compact('courses', 'lecturers', 'rooms'));
     }
 
     // 3. Proses Simpan Jadwal Baru
@@ -65,15 +72,17 @@ class ClassScheduleController extends Controller
         return redirect()->route('jadwal.index')->with('success', 'Jadwal Kuliah Berhasil Ditambahkan!');
     }
 
-    // 4. Tampilkan Form Edit Jadwal
+    /// 4. Tampilkan Form Edit Jadwal
     public function edit($id)
     {
         $schedule = DB::table('class_schedules')->where('id', $id)->first();
-        $courses = DB::table('courses')->get();
+        
+        // 🔍 PERBAIKAN: Hanya mengambil mata kuliah yang sudah di-ACC Kaprodi
+        $courses = DB::table('courses')->where('status_validasi', 'ACC')->get();
         $lecturers = DB::table('lecturers')->get();
         $rooms = DB::table('rooms')->get();
 
-        return view('schedule.edit', compact('schedule', 'courses', 'lecturers', 'rooms'));
+       return view('schedule.edit', compact('schedule', 'courses', 'lecturers', 'rooms'));
     }
 
     // 5. Proses Update Data Jadwal
@@ -98,5 +107,23 @@ class ClassScheduleController extends Controller
     {
         DB::table('class_schedules')->where('id', $id)->delete();
         return redirect()->route('jadwal.index')->with('success', 'Jadwal Kuliah Berhasil Dihapus!');
+    }
+
+    // 🔍 FUNGSI BARU KELOLA STATUS DOSEN DAN NOTIFIKASI OTOMATIS
+  public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status_dosen' => 'required',
+            'keterangan_status' => 'required',
+        ]);
+
+        // ✅ DATA UTAMA & CATATAN MASUK KE SINI DENGAN AMAN
+        DB::table('class_schedules')->where('id', $id)->update([
+            'status_dosen' => $request->status_dosen,
+            'keterangan_status' => $request->keterangan_status, 
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Status kehadiran dan catatan dosen berhasil diperbarui!');
     }
 }

@@ -303,19 +303,29 @@
                         </thead>
                         <tbody>
                             @php
-                                $recent_bimbingan = \Illuminate\Support\Facades\DB::table('consultation_logs')
-                                    ->join('mahasiswas', 'consultation_logs.mahasiswa_id', '=', 'mahasiswas.id')
-                                    ->select('consultation_logs.*', 'mahasiswas.nama as nama_mahasiswa')
-                                    ->orderBy('consultation_logs.id', 'desc')
-                                    ->limit(3)
-                                    ->get();
+                                $user = Auth::user();
+                                $role = strtolower($user->role);
+
+                                if ($role === 'mahasiswa') {
+                                    $recent_bimbingan = \Illuminate\Support\Facades\DB::table('consultation_logs')
+                                        ->where('consultation_logs.mahasiswa_id', $user->id)
+                                        ->orderBy('consultation_logs.id', 'desc')
+                                        ->limit(3)
+                                        ->get();
+                                } else {
+                                    $recent_bimbingan = \Illuminate\Support\Facades\DB::table('consultation_logs')
+                                        ->orderBy('consultation_logs.id', 'desc')
+                                        ->limit(3)
+                                        ->get();
+                                }
                             @endphp
+                            
                             @forelse($recent_bimbingan as $rb)
                             <tr>
                                 <td class="fw-semibold text-dark py-2 px-3">{{ $rb->nama_mahasiswa }}</td>
                                 <td class="text-truncate" style="max-width: 150px;">{{ $rb->topik_bimbingan }}</td>
                                 <td class="text-center">
-                                    <span class="badge {{ $rb->status_bimbingan == 'ACC' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                    <span class="badge {{ $rb->status_bimbingan == 'ACC' ? 'bg-success' : ($rb->status_bimbingan == 'Ditolak' ? 'bg-danger' : 'bg-warning text-dark') }}">
                                         {{ $rb->status_bimbingan }}
                                     </span>
                                 </td>
@@ -340,12 +350,12 @@
         const rawProdi = @json($prodiData ?? []);
         const rawAsal = @json($asalData ?? []);
 
-        // 🟢 JAVASCRIPT BARU: RENDERING GRAFIK KHUSUS OPERATOR FAKULTAS
+        // JAVASCRIPT: RENDERING GRAFIK KHUSUS OPERATOR FAKULTAS
         @if(Auth::user()->role === 'operator')
             const ctxProdiOp = document.getElementById('chartProdiOperator');
             if (ctxProdiOp && rawProdi.length > 0) {
                 new Chart(ctxProdiOp, {
-                    type: 'bar', // Grafik Batang Sesuai Permintaanmu
+                    type: 'bar', 
                     data: {
                         labels: rawProdi.map(i => i.prodi),
                         datasets: [{
@@ -362,7 +372,7 @@
             const ctxAsalOp = document.getElementById('chartAsalOperator');
             if (ctxAsalOp && rawAsal.length > 0) {
                 new Chart(ctxAsalOp, {
-                    type: 'doughnut', // Jenis Berbagai Grafik (Doughnut)
+                    type: 'doughnut', 
                     data: {
                         labels: rawAsal.map(i => i.alamat),
                         datasets: [{
@@ -375,7 +385,7 @@
             }
         @endif
 
-        // KODE SCRIPT GRAFIK ASLI ADMIN / KAPRODI (TIDAK TERSENTUH)
+        // KODE SCRIPT GRAFIK ASLI ADMIN / KAPRODI
         const ctxProdi = document.getElementById('chartProdi');
         if (ctxProdi && rawProdi && rawProdi.length > 0) {
             new Chart(ctxProdi, {
