@@ -230,14 +230,14 @@
         </div>
     </div>
 
-    <div class="col-md-6 mb-4">
-        <div class="card shadow border-0 p-3 bg-white">
-            <h5 class="fw-bold mb-3 text-center text-dark">Asal Wilayah Mahasiswa</h5>
-            <div style="height: 300px;">
-                <canvas id="chartAsal"></canvas>
-            </div>
+   <div class="col-md-5 mb-4">
+    <div class="card shadow border-0 p-4 bg-white rounded-3">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-success me-2"></i>Demografi Asal Mahasiswa</h5>
+        <div style="height: 300px;">
+            <canvas id="chartAsalOperator"></canvas>
         </div>
     </div>
+</div>
 </div>
 @endif
 
@@ -372,15 +372,24 @@
             const ctxAsalOp = document.getElementById('chartAsalOperator');
             if (ctxAsalOp && rawAsal.length > 0) {
                 new Chart(ctxAsalOp, {
-                    type: 'doughnut', 
+                    type: 'bar', // 🟢 UBAH: Dari 'doughnut' menjadi 'bar'
                     data: {
-                        labels: rawAsal.map(i => i.alamat),
+                        labels: rawAsal.map(i => i.kota), // 🟢 UBAH: Dari i.alamat menjadi i.kota
                         datasets: [{
+                            label: 'Asal Daerah', // 🟢 TAMBAHKAN: Label dataset batang
                             data: rawAsal.map(i => i.total),
-                            backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1']
+                            backgroundColor: 'rgba(25, 135, 84, 0.8)', // 🟢 Gunakan warna hijau sukses standar bootstrap
+                            borderRadius: 5
                         }]
                     },
-                    options: { maintainAspectRatio: false }
+                    options: { 
+                        maintainAspectRatio: false,
+                        scales: { 
+                            y: { 
+                                beginAtZero: true // 🟢 Memastikan skala grafik batang mulai dari angka 0
+                            } 
+                        } 
+                    }
                 });
             }
         @endif

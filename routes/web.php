@@ -17,6 +17,7 @@ use App\Http\Controllers\KurikulumController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\KrsController;
+use App\Http\Controllers\TugasController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,10 +35,10 @@ Route::get('/', function () {
 // =========================================================================
 // 🟢 PENGALIHAN: URL DASHBOARD INTERNAL (DIUBAH DARI '/' MENJADI '/dashboard')
 // =========================================================================
-Route::get('/dashboard', [MahasiswaController::class, 'dashboard'])
+// Kembalikan rute '/' kamu agar memanggil method dashboard controller lamamu
+Route::get('/', [MahasiswaController::class, 'dashboard'])
     ->middleware('auth')
     ->name('dashboard');
-
 
 // 2. MANAGEMENT MAHASISWA (CRUD)
 // Menampilkan Tabel Data Mahasiswa
@@ -132,14 +133,14 @@ Route::get('/bimbingan/{id}/edit', [ConsultationLogController::class, 'edit'])->
 Route::put('/bimbingan/{id}/update', [ConsultationLogController::class, 'update'])->name('bimbingan.update');
 Route::delete('/bimbingan/{id}/hapus', [ConsultationLogController::class, 'destroy'])->name('bimbingan.destroy');
 
-// Tampilan Halaman Login & Register
+/// Tampilan Halaman Login (Sekaligus Register di dalamnya)
 Route::get('/login', function () {
     return view('auth.login');
 })->name('login');
 
-// 🟢 TAMBAHKAN RUTE INI (Untuk menampilkan halaman form register)
+// Rute register diarahkan ke view yang sama (auth.login)
 Route::get('/register', function () {
-    return view('auth.register'); // Pastikan kamu punya file resources/views/auth/register.blade.php
+    return view('auth.login'); 
 })->name('register');
 
 // Proses Backend Auth
@@ -250,3 +251,9 @@ Route::post('/tugas/store', [App\Http\Controllers\TugasController::class, 'store
 
 // Rute untuk Mahasiswa mengumpulkan file tugas jawaban
 Route::post('/tugas/kumpul/{id}', [App\Http\Controllers\TugasController::class, 'kumpulTugas'])->name('tugas.kumpul');
+
+Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
+Route::post('/grades/store', [GradeController::class, 'store'])->name('grades.store');
+Route::get('/grades/{id}/edit', [GradeController::class, 'edit'])->name('grades.edit');
+Route::put('/grades/{id}/update', [GradeController::class, 'update'])->name('grades.update');
+Route::delete('/grades/{id}/delete', [GradeController::class, 'destroy'])->name('grades.destroy');

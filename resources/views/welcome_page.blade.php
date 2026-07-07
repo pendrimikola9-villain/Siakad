@@ -52,14 +52,10 @@
         <small class="text-muted d-block" style="font-size: 0.7rem;">Univ. Muhammadiyah Banjarmasin</small>
     </div>
 </a>
-            <div class="ms-auto">
-                @auth
-                    <a href="{{ url('/dashboard') }}" class="btn btn-primary fw-bold px-3 rounded-3">Dashboard</a>
-                @else
-                    <a href="{{ route('login') }}" class="btn btn-outline-primary fw-bold px-3 me-2 rounded-3">Login</a>
-                    <a href="{{ route('register') }}" class="btn btn-primary fw-bold px-3 rounded-3">Daftar</a>
-                @endif
-            </div>
+           <div class="ms-auto">
+    <a href="{{ route('login') }}" class="btn btn-outline-primary fw-bold px-3 me-2 rounded-3">Login</a>
+    <a href="{{ route('register') }}" class="btn btn-primary fw-bold px-3 rounded-3">Daftar</a>
+</div>
         </div>
     </nav>
 
@@ -74,20 +70,14 @@
                     <h1 class="display-5 fw-bold mb-3">Selamat Datang di <br><span class="text-warning">SIAKAD UMB Portal</span></h1>
                     <p class="lead mb-4 opacity-75">Platform digital terintegrasi untuk mempermudah manajemen perkuliahan, pengisian KRS, rekapitulasi nilai, serta transparansi logbook bimbingan mahasiswa dan dosen secara riil.</p>
                     
-                    <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
-                        @auth
-                            <a href="{{ url('/dashboard') }}" class="btn btn-warning btn-lg fw-bold px-4 py-3 rounded-3 shadow">
-                                <i class="bi bi-speedometer2 me-2"></i> Masuk ke Dashboard
-                            </a>
-                        @else
-                            <a href="{{ route('login') }}" class="btn btn-white bg-white text-primary btn-lg fw-bold px-4 py-3 rounded-3 shadow">
-                                <i class="bi bi-box-arrow-in-right me-2"></i> Portal Login SIAKAD
-                            </a>
-                            <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg fw-bold px-4 py-3 rounded-3">
-                                <i class="bi bi-person-plus me-2"></i> Registrasi Akun Baru
-                            </a>
-                        @endif
-                    </div>
+                   <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
+    <a href="{{ route('login') }}" class="btn btn-white bg-white text-primary btn-lg fw-bold px-4 py-3 rounded-3 shadow">
+        <i class="bi bi-box-arrow-in-right me-2"></i> Portal Login SIAKAD
+    </a>
+    <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg fw-bold px-4 py-3 rounded-3">
+        <i class="bi bi-person-plus me-2"></i> Registrasi Akun Baru
+    </a>
+</div>
                 </div>
                 
                 <div class="col-lg-6 text-center animate__animated animate__fadeInRight">

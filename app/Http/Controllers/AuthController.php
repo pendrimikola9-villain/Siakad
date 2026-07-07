@@ -28,7 +28,7 @@ class AuthController extends Controller
             // Mengambil data user yang sedang login saat ini
             $user = Auth::user(); 
 
-            // Cek role dan alihkan halaman sesuai perannya
+            // 🟢 KEMBALI KE ASLI: Alihkan halaman sesuai peran kemarin
             if ($user->role === 'admin') {
                 return redirect()->intended('/'); // Admin masuk ke Dashboard Utama
             } elseif ($user->role === 'dosen') {
