@@ -52,46 +52,54 @@
                                 <span class="badge {{ $kategori === 'Materi' ? 'bg-primary' : 'bg-success' }} px-2 py-1 small text-capitalize">{{ $kategori }}</span>
                             </div>
                             @if($kategori === 'Tugas')
-                                <small class="text-muted"><i class="bi bi-clock me-1"></i> Deadline: {{ date('d M Y, H:i', strtotime($dt->deadline)) }} WITA</small>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i> Deadline: {{ isset($dt->deadline) ? date('d M Y, H:i', strtotime($dt->deadline)) : '-' }} WITA</small>
                             @else
                                 <small class="text-muted"><i class="bi bi-eye me-1"></i> Materi Umum</small>
                             @endif
                         </div>
-                        <h5 class="fw-bold text-dark mt-2 mb-1">{{ $dt->judul_tugas }}</h5>
-                        <p class="text-secondary small mt-2">{{ $dt->deskripsi }}</p>
+                        <h5 class="fw-bold text-dark mt-2 mb-1">{{ $dt->judul_tugas ?? $dt->judul ?? 'Judul Tidak Tersedia' }}</h5>
+                        <p class="text-secondary small mt-2">{{ $dt->deskripsi ?? 'Tidak ada deskripsi' }}</p>
                     </div>
 
                     <div class="mt-4 pt-3 border-top">
                         <div class="row g-2">
                             <!-- Tombol Unduh Materi berlaku untuk kedua jenis kategori -->
                             <div class="col-{{ $kategori === 'Materi' && Auth::check() && strtolower(Auth::user()->role) === 'mahasiswa' ? '12' : '6' }}">
-                                <a href="{{ asset('storage/' . $dt->file_materi) }}" class="btn btn-outline-secondary btn-sm w-100" download>
+                                <a href="{{ asset('storage/' . ($dt->file_materi ?? $dt->file_path ?? '')) }}" class="btn btn-outline-secondary btn-sm w-100" download>
                                     <i class="bi bi-download me-1"></i> Unduh File
                                 </a>
                             </div>
                             
-                            <!-- Blok Aksi Pengumpulan Jawaban Khusus Kategori TUGAS -->
-                            @if($kategori === 'Tugas')
-                            <div class="col-6">
-                                @if(Auth::check() && strtolower(Auth::user()->role) === 'mahasiswa')
-                                    @if($dt->nilai_tugas)
-                                        <div class="bg-light rounded p-1 text-center border">
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Nilai Dosen:</small>
-                                            <strong class="text-success fs-6">{{ $dt->nilai_tugas }} / 100</strong>
-                                        </div>
-                                    @else
-                                        <button class="btn btn-success btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalKumpulTugas{{ $dt->id }}">
-                                            <i class="bi bi-upload me-1"></i> Kumpul Tugas
-                                        </button>
-                                    @endif
-                                @else
-                                    <div class="bg-light rounded p-1 text-center border">
-                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Status Akses:</small>
-                                        <strong class="text-success small">Monitoring Tugas</strong>
-                                    </div>
-                                @endif
-                            </div>
-                            @elseif($kategori === 'Materi' && Auth::check() && strtolower(Auth::user()->role) !== 'mahasiswa')
+                          <!-- 🟢 KODE BARU (Menampilkan Bukti untuk Mahasiswa & Tombol Rekap untuk Dosen/Kaprodi): -->
+@if($kategori === 'Tugas')
+<div class="col-6">
+    @if(Auth::check() && strtolower(Auth::user()->role) === 'mahasiswa')
+        {{-- Cek jika mahasiswa sudah punya record file jawaban di DB --}}
+        @if(isset($dt->file_jawaban) && $dt->file_jawaban)
+            <div class="bg-success bg-opacity-10 border border-success border-opacity-20 rounded p-1 text-center">
+                <small class="text-success fw-bold d-block" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i> Terkirim</small>
+                <a href="{{ asset($dt->file_jawaban) }}" target="_blank" class="text-success fw-bold small text-decoration-none" style="font-size: 0.75rem;">
+                    <i class="bi bi-download me-1"></i> Bukti File
+                </a>
+            </div>
+        @elseif(isset($dt->nilai_tugas) && $dt->nilai_tugas)
+            <div class="bg-light rounded p-1 text-center border">
+                <small class="text-muted d-block" style="font-size: 0.75rem;">Nilai Dosen:</small>
+                <strong class="text-success fs-6">{{ $dt->nilai_tugas }} / 100</strong>
+            </div>
+        @else
+            <button class="btn btn-success btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalKumpulTugas{{ $dt->id }}">
+                <i class="bi bi-upload me-1"></i> Kumpul Tugas
+            </button>
+        @endif
+    @else
+        {{-- Tombol untuk Dosen / Kaprodi / Admin / Operator untuk melihat siapa yang sudah kumpul --}}
+        <button class="btn btn-warning btn-sm w-100 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalRekapTugas{{ $dt->id }}">
+            <i class="bi bi-people-fill me-1"></i> Cek Pengumpul
+        </button>
+    @endif
+</div>
+@elseif($kategori === 'Materi' && Auth::check() && strtolower(Auth::user()->role) !== 'mahasiswa')
                             <div class="col-6">
                                 <div class="bg-light rounded p-1 text-center border">
                                     <small class="text-muted d-block" style="font-size: 0.75rem;">Status Akses:</small>
@@ -106,28 +114,63 @@
         </div>
 
         <!-- MODAL KUMPUL TUGAS (HANYA AKTIF JIKA TIPE TUGAS) -->
-        @if($kategori === 'Tugas' && Auth::check() && strtolower(Auth::user()->role) === 'mahasiswa')
-        <div class="modal fade" id="modalKumpulTugas{{ $dt->id }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+       <!-- 🟢 MODAL DAFTAR MAHASISWA YANG SUDAH KUMPUL TUGAS (KHUSUS DOSEN & KAPRODI) -->
+        @if($kategori === 'Tugas' && Auth::check() && in_array(strtolower(Auth::user()->role), ['admin', 'operator', 'dosen', 'kaprodi']))
+        <div class="modal fade" id="modalRekapTugas{{ $dt->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content border-0 shadow rounded-4">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-arrow-up me-2"></i>Upload File Tugas</h5>
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-people-fill text-warning me-2"></i> Rekap Pengumpulan: {{ $dt->judul_tugas ?? $dt->judul }}
+                        </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <form action="{{ route('tugas.kumpul', $dt->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="modal-body p-4">
-                            <p class="text-secondary small">Anda akan mengumpulkan tugas untuk: <strong class="text-dark">{{ $dt->judul_tugas }}</strong></p>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold text-secondary">Pilih File Jawaban (.pdf, .zip, .rar)</label>
-                                <input type="file" name="file_jawaban" class="form-control rounded-3" required>
-                            </div>
+                    <div class="modal-body p-4">
+                        @php
+                            // Mengambil daftar mahasiswa yang sudah kumpul dari tabel submissions
+                            $jawabanMahasiswa = \Illuminate\Support\Facades\DB::table('submissions')
+                                ->join('users', 'submissions.user_id', '=', 'users.id')
+                                ->where('submissions.assignment_id', $dt->id)
+                                ->select('submissions.*', 'users.name', 'users.email')
+                                ->get();
+                        @endphp
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light text-muted small">
+                                    <tr>
+                                        <th>Nama Mahasiswa</th>
+                                        <th>Waktu Kumpul</th>
+                                        <th>Berkas Jawaban</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($jawabanMahasiswa as $jm)
+                                        <tr>
+                                            <td class="fw-bold text-dark">{{ $jm->name }}</td>
+                                            <td class="small text-muted">{{ date('d M Y, H:i', strtotime($jm->updated_at)) }} WITA</td>
+                                            <td>
+                                                <a href="{{ asset($jm->file_path) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill fw-bold">
+                                                    <i class="bi bi-file-earmark-arrow-down me-1"></i> Periksa Jawaban
+                                                </a>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success border border-success px-3 py-1">Telah Mengumpulkan</span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                <i class="bi bi-inbox d-block fs-3 mb-1"></i>
+                                                Belum ada mahasiswa yang mengumpulkan tugas ini.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="modal-footer bg-light border-0">
-                            <button type="button" class="btn btn-secondary rounded-3 fw-bold" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-success rounded-3 fw-bold px-4">Kirim Tugas</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

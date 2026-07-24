@@ -15,9 +15,13 @@
             <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
                 <i class="fas fa-door-open me-2 text-primary"></i> Data Ruangan & Laboratorium
             </h5>
-            <a href="{{ route('room.create') }}" class="btn btn-primary px-3 shadow-sm rounded-2 fw-semibold">
-                <i class="fas fa-plus-circle me-1"></i> Tambah Ruangan
-            </a>
+            
+            {{-- 🔒 HANYA ADMIN & OPERATOR YANG BISA TAMBAH RUANGAN --}}
+            @if(in_array(auth()->user()->role, ['admin', 'operator']))
+                <a href="{{ route('room.create') }}" class="btn btn-primary px-3 shadow-sm rounded-2 fw-semibold">
+                    <i class="fas fa-plus-circle me-1"></i> Tambah Ruangan
+                </a>
+            @endif
         </div>
         
         <div class="card-body p-0">
@@ -30,7 +34,11 @@
                             <th>Jenis Ruangan</th>
                             <th class="text-center">Kapasitas</th>
                             <th>Lokasi Gedung</th>
-                            <th width="12%" class="text-center">Aksi</th>
+                            
+                            {{-- 🔒 KOLOM AKSI HANYA TAMPIL UNTUK ADMIN & OPERATOR --}}
+                            @if(in_array(auth()->user()->role, ['admin', 'operator']))
+                                <th width="12%" class="text-center">Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -45,27 +53,31 @@
                             </td>
                             <td class="text-center fw-semibold text-dark">{{ $ruang->kapasitas }} Kursi</td>
                             <td><span class="text-muted"><i class="fas fa-building me-1"></i>{{ $ruang->lokasi_gedung }}</span></td>
+                            
+                            {{-- 🔒 TOMBOL AKSI HANYA TAMPIL UNTUK ADMIN & OPERATOR --}}
+                            @if(in_array(auth()->user()->role, ['admin', 'operator']))
                             <td class="text-center">
-    <div class="d-flex justify-content-center gap-1">
-    
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('room.edit', $ruang->id) }}" class="btn btn-sm btn-warning text-white shadow-sm" title="Edit Ruangan">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
 
-        <a href="{{ route('room.edit', $ruang->id) }}" class="btn btn-sm btn-warning text-white shadow-sm" title="Edit Ruangan">
-    <i class="bi bi-pencil"></i>
-</a>
-
-        <form action="{{ route('room.destroy', $ruang->id) }}" method="POST" class="d-inline">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-sm btn-danger shadow-sm" onclick="return confirm('Yakin ingin menghapus data ruangan ini?')" title="Hapus Ruangan">
-                <i class="bi bi-trash"></i>
-            </button>
-        </form>
-    </div>
-</td>
+                                    <form action="{{ route('room.destroy', $ruang->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger shadow-sm" onclick="return confirm('Yakin ingin menghapus data ruangan ini?')" title="Hapus Ruangan">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                            @endif
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center p-4 text-muted">Belum ada data ruangan yang diinputkan.</td>
+                            <td colspan="{{ in_array(auth()->user()->role, ['admin', 'operator']) ? 6 : 5 }}" class="text-center p-4 text-muted">
+                                Belum ada data ruangan yang diinputkan.
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>

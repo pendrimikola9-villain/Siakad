@@ -44,7 +44,7 @@
             
           <div class="list-group list-group-flush mt-3">
                 
-                <a href="/" class="list-group-item list-group-item-action bg-dark text-white">
+                <a href="{{ route('dashboard') }}" class="list-group-item list-group-item-action bg-dark text-white">
                     <i class="bi bi-speedometer2 text-white me-2"></i> Dashboard
                 </a>
 
@@ -119,6 +119,11 @@
                     <a href="{{ route('mahasiswa.sibimbing') }}" class="list-group-item list-group-item-action bg-dark text-white">
                         <i class="bi bi-chat-square-text me-2 text-white"></i> Log Bimbingan 
                     </a>
+
+                    <!-- 🟢 TAMBAHKAN MENU INI UNTUK MODUL FUZZY UAS -->
+                    <a href="{{ route('mahasiswa.fuzzy.evaluasi') }}" class="list-group-item list-group-item-action bg-dark text-white">
+    <i class="bi bi-cpu-fill me-2 text-warning"></i> Evaluasi Fuzzy Belajar
+</a>
                 @endif
 
                 <form action="{{ route('logout') }}" method="POST" class="list-group-item bg-dark p-0 mt-4 border-top border-secondary border-opacity-20">

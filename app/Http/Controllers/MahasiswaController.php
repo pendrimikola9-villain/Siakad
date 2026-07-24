@@ -35,14 +35,19 @@ class MahasiswaController extends Controller
 
     // 2. Menampilkan Form Tambah Mahasiswa
     public function create()
-    {
-        $lecturers = DB::table('lecturers')->get();
-        return view('Data-mahasiswa', compact('lecturers'));
-    }
+{
+    $lecturers = DB::table('lecturers')->get();
+    return view('Data-mahasiswa', compact('lecturers'));
+}
 
-    // 3. Simpan Data Baru
+    // 3. Simpan Data Baru (Diproteksi untuk Admin & Operator)
     public function store(Request $request)
     {
+        // 🟢 PROTEKSI HAK AKSES: Tolak eksekusi jika role Kaprodi atau Dosen
+        if (in_array(strtolower(Auth::user()->role), ['kaprodi', 'dosen'])) {
+            return redirect()->route('data-mahasiswa')->with('error', 'Akses ditolak! Anda tidak memiliki izin untuk menambah data.');
+        }
+
         $request->validate([
             'nim' => 'required|unique:mahasiswas,nim',
             'nama' => 'required',
@@ -52,24 +57,34 @@ class MahasiswaController extends Controller
         return redirect()->route('data-mahasiswa')->with('success', 'Data berhasil ditambahkan!');
     }
 
-    // 4. Detail Mahasiswa
+    // 4. Detail Mahasiswa (🟢 PERBAIKAN: Method show() yang tadinya hilang sudah ditambahkan kembali)
     public function show($id)
     {
         $mahasiswa = Mahasiswa::findOrFail($id);
         return view('detail-mahasiswa', compact('mahasiswa'));
     }
 
-    // 5. Edit (Tampil Form)
+    // 5. Edit - Tampil Form (Diproteksi untuk Admin & Operator)
     public function edit($id)
     {
+        // 🟢 PROTEKSI HAK AKSES
+        if (in_array(strtolower(Auth::user()->role), ['kaprodi', 'dosen'])) {
+            return redirect()->route('data-mahasiswa')->with('error', 'Akses ditolak! Anda hanya memiliki akses melihat data.');
+        }
+
         $mahasiswa = DB::table('mahasiswas')->where('id', $id)->first();
         $lecturers = DB::table('lecturers')->get();
         return view('edit-mahasiswa', compact('mahasiswa', 'lecturers'));
     }
 
-    // 6. Update Data
+    // 6. Update Data (Diproteksi untuk Admin & Operator)
     public function update(Request $request, $id)
     {
+        // 🟢 PROTEKSI HAK AKSES
+        if (in_array(strtolower(Auth::user()->role), ['kaprodi', 'dosen'])) {
+            return redirect()->route('data-mahasiswa')->with('error', 'Akses ditolak!');
+        }
+
         $request->validate([
             'nama' => 'required',
         ]);
@@ -80,43 +95,49 @@ class MahasiswaController extends Controller
         return redirect()->route('data-mahasiswa')->with('success', 'Data mahasiswa berhasil diperbarui!');
     }
 
-    // 7. Hapus Data
+    // 7. Hapus Data (Diproteksi untuk Admin & Operator)
     public function destroy($id)
     {
+        // 🟢 PROTEKSI HAK AKSES
+        if (in_array(strtolower(Auth::user()->role), ['kaprodi', 'dosen'])) {
+            return redirect()->route('data-mahasiswa')->with('error', 'Akses ditolak! Anda tidak diizinkan menghapus data.');
+        }
+
         $mahasiswa = Mahasiswa::findOrFail($id);
         $mahasiswa->delete();
 
         return redirect()->route('data-mahasiswa')->with('success', 'Data mahasiswa berhasil dihapus!');
     }
 
-    // 8. DASHBOARD UTAMA
-    // 8. DASHBOARD UTAMA (Mendukung Grafik Live Khusus Operator)
+    // 8. DASHBOARD UTAMA (Proteksi Tamu)
     public function dashboard()
     {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
         try {
-            // Data Standar Summary Card
             $totalMhs = DB::table('mahasiswas')->count();
             $totalLaki = DB::table('mahasiswas')->where('jenis_kelamin', 'Laki-laki')->count();
             $totalPerempuan = DB::table('mahasiswas')->where('jenis_kelamin', 'Perempuan')->count();
             
-            // Tambahan summary untuk Operator Fakultas
             $totalDosen = DB::table('lecturers')->count();
             $totalMatkul = DB::table('courses')->count();
             $totalProdi = DB::table('mahasiswas')->whereNotNull('prodi')->distinct('prodi')->count('prodi');
 
-            // Data untuk Grafik Batang (Mahasiswa per Prodi)
             $prodiData = DB::table('mahasiswas')
                         ->select('prodi', DB::raw('count(*) as total'))
                         ->whereNotNull('prodi')
                         ->groupBy('prodi')->get();
 
-            // Data untuk Grafik Lingkaran (Sebaran Asal Kota Mahasiswa)
+            // Ambil data demografi berdasarkan Tempat Lahir Mahasiswa
             $asalData = DB::table('mahasiswas')
-                        ->select('alamat as kota', DB::raw('count(*) as total'))
-                        ->whereNotNull('alamat')
-                        ->groupBy('alamat')->get();
+                ->select('tempat_lahir as kota', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('tempat_lahir')
+                ->groupBy('tempat_lahir')
+                ->orderBy('total', 'desc')
+                ->get();
 
-            // Kirim semua variabel ke view dashboard
             return view('dashboard', compact(
                 'totalMhs', 'totalLaki', 'totalPerempuan', 
                 'totalDosen', 'totalMatkul', 'totalProdi',
@@ -129,21 +150,18 @@ class MahasiswaController extends Controller
     }
 
     // 9. PRESENSI MAHASISWA
-   public function rekapPresensi()
+    public function rekapPresensi()
     {
-        $mahasiswaId = Auth::id(); // Mengambil ID Mahasiswa yang sedang login
+        if (!Auth::check()) { return redirect()->route('login'); }
+        $mahasiswaId = Auth::id(); 
 
-        // Kueri menghitung rekap absensi per mata kuliah secara dinamis
         $rekapAbsen = DB::table('attendances')
             ->join('courses', 'attendances.course_id', '=', 'courses.id')
             ->where('attendances.mahasiswa_id', $mahasiswaId)
             ->select(
                 'courses.nama_mk',
-                // Hitung total baris absen sebagai jumlah pertemuan perkuliahan
                 DB::raw('COUNT(attendances.id) as total_pertemuan'),
-                // Hitung berapa kali mahasiswa berstatus 'Hadir'
                 DB::raw("SUM(CASE WHEN attendances.status = 'Hadir' THEN 1 ELSE 0 END) as total_hadir"),
-                // Hitung persentase kehadiran: (Hadir / Total Pertemuan) * 100
                 DB::raw("ROUND((SUM(CASE WHEN attendances.status = 'Hadir' THEN 1 ELSE 0 END) / COUNT(attendances.id)) * 100) as persentase")
             )
             ->groupBy('courses.id', 'courses.nama_mk')
@@ -152,22 +170,70 @@ class MahasiswaController extends Controller
         return view('mahasiswa.presensi', compact('rekapAbsen'));
     }
 
-
     // 10. BAHAN & TUGAS
     public function tugas()
     {
-        try {
-            $daftarTugas = DB::table('assignments')->orderBy('id', 'desc')->get();
-        } catch (\Exception $e) {
-            $daftarTugas = [];
-        }
-        
+        $userAktif = Auth::user();
+
+        $daftarTugas = DB::table('assignments')
+            ->leftJoin('submissions', function($join) use ($userAktif) {
+                $join->on('assignments.id', '=', 'submissions.assignment_id')
+                     ->where('submissions.user_id', '=', $userAktif->id);
+            })
+            ->select(
+                'assignments.*',
+                'submissions.id as submission_id',
+                'submissions.file_path as file_jawaban',
+                'submissions.score as nilai_tugas'
+            )
+            ->orderBy('assignments.id', 'desc')
+            ->get();
+
         return view('mahasiswa.tugas', compact('daftarTugas'));
+    }
+
+    public function uploadTugas(Request $request)
+    {
+        $request->validate([
+            'assignment_id' => 'required',
+            'file_tugas'    => 'required|file|mimes:pdf,doc,docx,zip,rar|max:5048',
+        ]);
+
+        $user = Auth::user();
+        
+        if ($request->hasFile('file_tugas')) {
+            $file = $request->file('file_tugas');
+            $namaFile = time() . '_' . $user->id . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/tugas'), $namaFile);
+
+            DB::table('submissions')->updateOrInsert(
+                [
+                    'assignment_id' => $request->assignment_id,
+                    'user_id'       => $user->id
+                ],
+                [
+                    'file_path'  => 'uploads/tugas/' . $namaFile,
+                    'updated_at' => now(),
+                    'created_at' => now()
+                ]
+            );
+
+            return redirect()->back()->with('success', 'Tugas berhasil di-unggah!');
+        }
+
+        return redirect()->back()->with('error', 'Gagal mengunggah file tugas.');
+    }
+
+    public function destroyTugas($id)
+    {
+        DB::table('assignments')->where('id', $id)->delete();
+        return redirect()->back()->with('success', 'Data bahan/tugas berhasil dihapus!');
     }
 
     // 11. KRS INDEX
     public function krsIndex()
     {
+        if (!Auth::check()) { return redirect()->route('login'); }
         $mahasiswaId = Auth::id();
         $katalogMatkul = DB::table('courses')->get();
         $krsDiambil = DB::table('study_plans')
@@ -181,6 +247,7 @@ class MahasiswaController extends Controller
     // 12. KRS SIMPAN
     public function krsSimpan(Request $request)
     {
+        if (!Auth::check()) { return redirect()->route('login'); }
         $mahasiswaId = Auth::id();
         $semesterAktif = "2025/2026 Genap";
         $matkulDipilih = $request->input('matkul', []);
@@ -205,9 +272,8 @@ class MahasiswaController extends Controller
     }
 
     // 13. SIPLAR (JADWAL KULIAH)
-  public function siplarIndex()
+    public function siplarIndex()
     {
-        // 1. Query ambil data list jadwal utama
         $schedules = DB::table('class_schedules')
             ->join('courses', 'class_schedules.course_id', '=', 'courses.id')
             ->join('lecturers', 'class_schedules.lecturer_id', '=', 'lecturers.id')
@@ -222,29 +288,26 @@ class MahasiswaController extends Controller
             )
             ->get();
 
-        // 💡 PERBAIKAN: Tarik data pembantu untuk dropdown modal form agar tidak Undefined
         $courses = DB::table('courses')->where('status_validasi', 'ACC')->get();
         $lecturers = DB::table('lecturers')->get();
         $rooms = DB::table('rooms')->get();
 
-        // 2. Kirim semua variabel ke dalam view schedule.index kamu
         return view('schedule.index', compact('schedules', 'courses', 'lecturers', 'rooms'));
     }
 
-  // 14. SIBIMBING INDEX (Sudah ada di file kamu)
-  public function sibimbingIndex()
+    // 14. SIBIMBING INDEX
+    public function sibimbingIndex()
     {
+        if (!Auth::check()) { return redirect()->route('login'); }
         $user = Auth::user();
         $role = strtolower($user->role);
 
         if ($role === 'mahasiswa') {
-            // Kalau mahasiswa login, dia hanya melihat riwayat bimbingannya sendiri
             $logs = DB::table('consultation_logs')
                 ->where('mahasiswa_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
-            // 🟢 BYPASS TUGAS KULIAH: Dosen, Kaprodi, atau Admin bisa melihat SEMUA data bimbingan mahasiswa
             $logs = DB::table('consultation_logs')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -253,55 +316,46 @@ class MahasiswaController extends Controller
         return view('bimbingan.index', compact('logs'));
     }
     
-    // 🟢 15. FITUR BARU: SIMPAN KONSULTASI / JANJI TEMU GLOBAL SIBIMBING
-  // 🟢 15. FITUR BARU: SIMPAN KONSULTASI / JANJI TEMU GLOBAL SIBIMBING
+    // 15. KONSULTASI STORE
     public function sibimbingStore(Request $request)
     {
-        // Validasi input data dari form bimbingan mahasiswa
+        if (!Auth::check()) { return redirect()->route('login'); }
+        
         $request->validate([
             'jenis_konsultasi' => 'required',
             'dosen_id'         => 'required',
             'topik_bimbingan'  => 'required|string',
             'tanggal_bimbingan'=> 'required|date',
-            // Catatan mahasiswa opsional karena tidak ada kolomnya di tabel, bisa kita gabung ke topik bimbingan jika perlu
             'catatan_mahasiswa'=> 'required', 
         ]);
 
         $mahasiswaId = Auth::id();
         $user = Auth::user();
-
-        // Menyusun pesan gabungan topik dan catatan agar input dari form mahasiswa tidak hilang
         $topikDanCatatan = $request->topik_bimbingan . " (Catatan: " . $request->catatan_mahasiswa . ")";
 
-        // Insert data ke dalam tabel consultation_logs sesuai struktur riil HeidiSQL
         DB::table('consultation_logs')->insert([
             'mahasiswa_id'      => $mahasiswaId,
             'nama_mahasiswa'    => $user->name, 
             'nim'               => $user->nim ?? 'NIM-BELUM-SET', 
             'jenis_konsultasi'  => $request->jenis_konsultasi,
-            'lecturer_id'       => $request->dosen_id, // 🟢 Sesuai kolom ke-6
-            
-            // 🟢 KUNCI UTAMA: Kolom room_id wajib diisi (NOT NULL). Kita set default value 1 
-            // agar lolos validasi database sebelum nantinya diubah oleh dosen/admin.
+            'lecturer_id'       => $request->dosen_id,
             'room_id'           => 1, 
-            
-            'tanggal_bimbingan' => $request->tanggal_bimbingan, // 🟢 Sesuai kolom ke-8
-            'topik_bimbingan'   => $topikDanCatatan, // 🟢 Sesuai kolom ke-9
-            'request_pertemuan' => $request->has('request_pertemuan') ? 'Ya' : 'Tidak', // 🟢 Sesuai kolom ke-10
-            'status_bimbingan'  => 'Menunggu Validasi', // 🟢 Sesuai kolom ke-11
-            'alasan_penolakan'  => null, // 🟢 Sesuai kolom ke-12
-            'nama_ruangan'      => 'Menunggu Konfirmasi', // 🟢 Sesuai kolom ke-13
+            'tanggal_bimbingan' => $request->tanggal_bimbingan,
+            'topik_bimbingan'   => $topikDanCatatan,
+            'request_pertemuan' => $request->has('request_pertemuan') ? 'Ya' : 'Tidak',
+            'status_bimbingan'  => 'Menunggu Validasi',
+            'alasan_penolakan'  => null,
+            'nama_ruangan'      => 'Menunggu Konfirmasi',
             'created_at'        => now(),
             'updated_at'        => now(),
         ]);
 
-        return redirect()->route('mahasiswa.sibimbing')->with('success', 'Konsultasi berhasil diajukan! Data sukses terekam ke database.');
+        return redirect()->route('mahasiswa.sibimbing')->with('success', 'Konsultasi berhasil diajukan!');
     }
     
     // 16. HALAMAN VALIDASI KURIKULUM (KAPRODI)
     public function validasiKurikulum()
     {
-        // Mengambil semua mata kuliah untuk divalidasi statusnya oleh Kaprodi
         $courses = DB::table('courses')->orderBy('kode_mk', 'asc')->get();
         return view('kaprodi.kurikulum', compact('courses'));
     }
@@ -309,11 +363,9 @@ class MahasiswaController extends Controller
     // 17. HALAMAN LAPORAN AKADEMIK (KAPRODI)
     public function laporanAkademik()
     {
-        // Mengambil data ringkasan untuk laporan prodi
         $totalMhsProdi = DB::table('mahasiswas')->count();
-        $rataIpk = 3.45; // Nilai dummy standar rata-rata prodi
+        $rataIpk = 3.45;
         
-        // Sebaran per angkatan
         $angkatanData = DB::table('mahasiswas')
             ->select(DB::raw('SUBSTRING(nim, 1, 2) as tahun'), DB::raw('count(*) as total'))
             ->groupBy('tahun')->get();
@@ -321,7 +373,7 @@ class MahasiswaController extends Controller
         return view('kaprodi.laporan', compact('totalMhsProdi', 'rataIpk', 'angkatanData'));
     }
 
-    // 💾 FUNGSI: Update Status ACC / Tolak Bimbingan Mahasiswa
+    // 18. UPDATE STATUS SIBIMBING
     public function sibimbingUpdateStatus(Request $request, $id, $status)
     {
         $updateData = [
@@ -329,7 +381,6 @@ class MahasiswaController extends Controller
             'updated_at' => now()
         ];
 
-        // Jika ditolak, simpan alasan penolakannya ke kolom alasan_penolakan sesuai struktur HeidiSQL
         if ($status === 'Ditolak') {
             $updateData['alasan_penolakan'] = $request->input('alasan_penolakan');
         }
@@ -340,5 +391,4 @@ class MahasiswaController extends Controller
 
         return redirect()->back()->with('success', 'Status bimbingan mahasiswa berhasil diperbarui!');
     }
-
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class PresensiController extends Controller
 {
@@ -16,25 +17,20 @@ class PresensiController extends Controller
 
         // 2. Hitung statistik riil per mata kuliah langsung dari tabel attendances
         foreach ($rekapAbsen as $ra) {
-            
-            // Hitung total pertemuan unik berdasarkan tanggal yang ada di matkul ini
             $ra->total_pertemuan = DB::table('attendances')
                 ->where('course_id', $ra->course_id)
                 ->distinct('tanggal')
                 ->count('tanggal');
 
-            // Hitung total status "Hadir" yang terekam di matkul ini
             $ra->total_hadir = DB::table('attendances')
                 ->where('course_id', $ra->course_id)
                 ->where('status', 'Hadir')
                 ->count();
 
-            // Hitung total seluruh baris data di matkul ini untuk pembagi persentase
             $totalRecordMatkul = DB::table('attendances')
                 ->where('course_id', $ra->course_id)
                 ->count();
 
-            // 3. Kalkulasi persentase pergerakan progress bar
             if ($totalRecordMatkul > 0 && $ra->total_pertemuan > 0) {
                 $ra->persentase = round(($ra->total_hadir / $totalRecordMatkul) * 100);
             } else {
@@ -47,67 +43,130 @@ class PresensiController extends Controller
         return view('mahasiswa.presensi', compact('rekapAbsen', 'daftarAngkatan')); 
     }
 
-    // 🌐 FUNGSI: Mengambil semua data mahasiswa
-    public function getMahasiswaByFilter(Request $request)
-    {
-        $courseId = $request->course_id;
+  public function getMahasiswaByFilter(Request $request)
+{
+    $courseId = $request->course_id;
+    $tanggalInput = $request->tanggal ?? date('Y-m-d');
+    $userAktif = Auth::user(); // Mendeteksi siapa yang sedang login
 
-        $mahasiswa = DB::table('mahasiswas')
-            ->select('id', 'nama as name', 'nim as npm')
-            ->orderBy('nama', 'asc')
+    // 🟢 HAK AKSES QUERY: Jika Mahasiswa, kunci hanya untuk ID dia sendiri
+    if ($userAktif->role === 'mahasiswa') {
+        $mahasiswaKrs = DB::table('krs')
+            ->join('users', 'krs.user_id', '=', 'users.id')
+            ->where('krs.course_id', $courseId)
+            ->where('users.id', $userAktif->id) // <--- Kunci pengunci hak akses mahasiswa
+            ->select('users.id', 'users.name', 'users.email as npm')
             ->get();
-
-        return response()->json([
-            'mahasiswa' => $mahasiswa,
-            'course_id' => $courseId
-        ]);
+    } else {
+        // Jika Dosen / Kaprodi / Operator / Admin, tarik semua mahasiswa kelas
+        $mahasiswaKrs = DB::table('krs')
+            ->join('users', 'krs.user_id', '=', 'users.id')
+            ->where('krs.course_id', $courseId)
+            ->select('users.id', 'users.name', 'users.email as npm')
+            ->orderBy('users.name', 'asc')
+            ->get();
     }
 
-  public function storeMassal(Request $request)
-    {
-        $request->validate([
-            'course_id' => 'required',
-            'tanggal' => 'required|date',
-        ]);
+    $dataHasil = [];
 
-        $courseId = $request->course_id;
-        $tanggal = $request->tanggal;
+    foreach ($mahasiswaKrs as $mhs) {
+        // Hitung total akumulatif riwayat kehadiran
+        $totalHadir = DB::table('attendances')->where(['course_id' => $courseId, 'mahasiswa_id' => $mhs->id, 'status' => 'Hadir'])->count();
+        $totalSakit = DB::table('attendances')->where(['course_id' => $courseId, 'mahasiswa_id' => $mhs->id, 'status' => 'Sakit'])->count();
+        $totalIzin  = DB::table('attendances')->where(['course_id' => $courseId, 'mahasiswa_id' => $mhs->id, 'status' => 'Izin'])->count();
+        $totalAlfa  = DB::table('attendances')->where(['course_id' => $courseId, 'mahasiswa_id' => $mhs->id, 'status' => 'Alfa'])->count();
+        
+        $totalPertemuan = $totalHadir + $totalSakit + $totalIzin + $totalAlfa;
+        $persentase = $totalPertemuan > 0 ? round(($totalHadir / $totalPertemuan) * 100) : 0;
 
-        // 🟢 SOLUSI PINTAR: Tarik ID asli dari tabel users yang rolenya 'mahasiswa' 
-        // Ini dilakukan agar lolos dan cocok dengan FOREIGN KEY (mahasiswa_id -> users.id)
-        $mahasiswaUserIds = DB::table('users')
-            ->where('role', 'mahasiswa')
-            ->pluck('id')
-            ->toArray();
+        // Cek status absensi hari ini
+        $statusHariIni = DB::table('attendances')
+            ->where(['course_id' => $courseId, 'mahasiswa_id' => $mhs->id, 'tanggal' => $tanggalInput])
+            ->value('status');
 
-        // Cadangan darurat: Jika di tabel users rolenya kosong, gunakan fallback id user login agar tidak crash
-        if (empty($mahasiswaUserIds)) {
-            $mahasiswaUserIds = [Auth::id()];
+        $dataHasil[] = [
+            'id' => $mhs->id,
+            'name' => $mhs->name,
+            'npm' => $mhs->npm,
+            'hadir' => $totalHadir,
+            'sakit' => $totalSakit,
+            'izin' => $totalIzin,
+            'alfa' => $totalAlfa,
+            'total_pertemuan' => $totalPertemuan,
+            'persentase' => $persentase,
+            'status_hari_ini' => $statusHariIni ?: 'Belum Absen'
+        ];
+    }
+
+    return response()->json([
+        'mahasiswa' => $dataHasil,
+        'course_id' => $courseId,
+        'tanggal' => $tanggalInput
+    ]);
+}
+
+   public function storeMassal(Request $request)
+{
+    $request->validate([
+        'course_id' => 'required',
+        'tanggal' => 'required|date',
+    ]);
+
+    $courseId = $request->course_id;
+    $tanggal = $request->tanggal;
+
+    // Ambil semua ID mahasiswa yang mengontrak matkul ini
+    $mahasiswaUserIds = DB::table('krs')
+        ->where('course_id', $courseId)
+        ->pluck('user_id') 
+        ->toArray();
+
+    if (empty($mahasiswaUserIds)) {
+         return redirect()->back()->with('error', 'Tidak ada mahasiswa di kelas ini.');
+    }
+
+    // Variabel untuk menghitung rangkuman (summary) absensi hari ini
+    $hitungHadir = 0;
+    $hitungSakit = 0;
+    $hitungIzin  = 0;
+    $hitungAlfa  = 0;
+
+    DB::transaction(function () use ($request, $courseId, $tanggal, $mahasiswaUserIds, &$hitungHadir, &$hitungSakit, &$hitungIzin, &$hitungAlfa) {
+        // 1. Hapus data absensi lama di tanggal dan matkul ini agar tidak duplikat
+        DB::table('attendances')
+            ->where('course_id', $courseId)
+            ->where('tanggal', $tanggal)
+            ->delete();
+
+        // 2. Masukkan data absensi yang baru sesuai pilihan di website
+        foreach ($mahasiswaUserIds as $userId) {
+            // Mengambil status dari form array status[user_id]
+            $statusKehadiran = $request->input("status.{$userId}", 'Hadir');
+
+            // Kalkulasi summary berdasarkan status yang dipilih dosen
+            if ($statusKehadiran === 'Hadir') $hitungHadir++;
+            elseif ($statusKehadiran === 'Sakit') $hitungSakit++;
+            elseif ($statusKehadiran === 'Izin') $hitungIzin++;
+            elseif ($statusKehadiran === 'Alfa') $hitungAlfa++;
+
+            DB::table('attendances')->insert([
+                'course_id' => $courseId,
+                'mahasiswa_id' => $userId, 
+                'tanggal' => $tanggal,
+                'status' => $statusKehadiran,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
         }
+    });
 
-        DB::transaction(function () use ($request, $courseId, $tanggal, $mahasiswaUserIds) {
-            // Bersihkan data lama pada tanggal dan matkul ini agar tidak duplikat
-            DB::table('attendances')
-                ->where('course_id', $courseId)
-                ->where('tanggal', $tanggal)
-                ->delete();
+    // 🟢 Rangkai kalimat alert dinamis sesuai hasil hitungan di atas
+    $pesanSukses = "Presensi kelas berhasil disimpan! Rangking hari ini: " . 
+                   "Hadir: {$hitungHadir} orang, " . 
+                   "Sakit: {$hitungSakit} orang, " . 
+                   "Izin: {$hitungIzin} orang, " . 
+                   "Alfa: {$hitungAlfa} orang.";
 
-            // Loop menggunakan ID yang valid dari tabel users
-            foreach ($mahasiswaUserIds as $userId) {
-                // Ambil status dari form, jika form tidak mengirimkan data array status, default diset 'Hadir'
-                $statusKehadiran = $request->input("status.{$userId}", 'Hadir');
-
-                DB::table('attendances')->insert([
-                    'course_id' => $courseId,
-                    'mahasiswa_id' => $userId, // Pastikan ID ini terdaftar di tabel users
-                    'tanggal' => $tanggal,
-                    'status' => $statusKehadiran,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        });
-
-        return redirect()->back()->with('success', 'Presensi berhasil disimpan! Data attendances lolos foreign key dan diperbarui.');
-    }
+    return redirect()->back()->with('success', $pesanSukses);
+}
 }

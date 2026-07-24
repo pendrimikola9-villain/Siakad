@@ -4,10 +4,15 @@
 <div class="card shadow border-0 mt-4">
     <div class="card-header bg-white p-3 d-flex justify-content-between align-items-center">
         <h4 class="mb-0">Daftar Dosen</h4>
-        <a href="{{ route('dosen.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> Tambah Dosen
-        </a>
+        
+        {{-- 🔒 HANYA ADMIN & KAPRODI YANG BISA TAMBAH DOSEN --}}
+        @if(in_array(auth()->user()->role, ['admin', 'operator']))
+            <a href="{{ route('dosen.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Tambah Dosen
+            </a>
+        @endif
     </div>
+    
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -19,7 +24,7 @@
                         <th>Kontak & Email</th>
                         <th>Info Akademik</th>
                         <th>Alamat Domisili</th>
-                        <th>Aksi</th>
+                        <th class="text-center">Aksi</th> {{-- 🟢 Kolom Aksi tampil untuk semua role --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -48,29 +53,36 @@
                                 {{ $dosen->alamat_lengkap }}
                             </small>
                         </td>
-                       <td>
-    <div class="d-flex gap-1">
-      <a href="{{ route('dosen.show', $dosen->id) }}" class="btn btn-sm btn-info text-white shadow-sm">
-    <i class="bi bi-eye"></i>
-</a>
+                        
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                {{-- 👁️ TOMBOL DETAIL / SHOW (Dapat diakses oleh ADMIN, KAPRODI, & DOSEN) --}}
+                                <a href="{{ route('dosen.show', $dosen->id) }}" class="btn btn-sm btn-info text-white shadow-sm" title="Lihat Detail">
+                                    <i class="bi bi-eye"></i>
+                                </a>
 
-        <a href="{{ route('dosen.edit', $dosen->id) }}" class="btn btn-sm btn-warning text-white shadow-sm">
-            <i class="bi bi-pencil"></i>
-        </a>
+                                {{-- 🔒 EDIT & HAPUS HANYA UNTUK ADMIN & KAPRODI --}}
+                                @if(in_array(auth()->user()->role, ['admin', 'operator']))
+                                    <a href="{{ route('dosen.edit', $dosen->id) }}" class="btn btn-sm btn-warning text-white shadow-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
 
-        <form action="{{ route('dosen.destroy', $dosen->id) }}" method="POST" class="d-inline">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-sm btn-danger shadow-sm" onclick="return confirm('Yakin ingin menghapus data dosen ini?')">
-                <i class="bi bi-trash"></i>
-            </button>
-        </form>
-    </div>
-</td>
+                                    <form action="{{ route('dosen.destroy', $dosen->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger shadow-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data dosen ini?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center p-4 text-muted">Belum ada data master dosen.</td>
+                        <td colspan="7" class="text-center p-4 text-muted">
+                            Belum ada data master dosen.
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth; // 🟢 Wajib tambahkan ini agar Auth::user() tidak eror!
 
 class TugasController extends Controller
 {
@@ -38,5 +39,39 @@ class TugasController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Tugas/Materi perkuliahan berhasil dipublish!');
+    }
+
+    public function kumpulTugas(Request $request, $id)
+    {
+        $request->validate([
+            'file_jawaban' => 'required|file|mimes:pdf,doc,docx,zip,rar|max:10240', // Maksimal 10MB
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('file_jawaban')) {
+            $file = $request->file('file_jawaban');
+            $namaFile = time() . '_' . $user->id . '_' . $file->getClientOriginalName();
+            
+            // Simpan file ke folder public/uploads/tugas
+            $file->move(public_path('uploads/tugas'), $namaFile);
+
+            // Simpan / update ke database tabel submissions
+            DB::table('submissions')->updateOrInsert(
+                [
+                    'assignment_id' => $id,
+                    'user_id'       => $user->id
+                ],
+                [
+                    'file_path'  => 'uploads/tugas/' . $namaFile,
+                    'updated_at' => now(),
+                    'created_at' => now()
+                ]
+            );
+
+            return redirect()->back()->with('success', 'Tugas Anda berhasil dikirim!');
+        }
+
+        return redirect()->back()->with('error', 'Gagal mengunggah file tugas.');
     }
 }

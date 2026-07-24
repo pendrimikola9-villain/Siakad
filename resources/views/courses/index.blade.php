@@ -4,9 +4,13 @@
 <div class="container-fluid py-2 animate__animated animate__fadeIn">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-primary fw-bold"><i class="bi bi-book me-2"></i>Daftar Matakuliah</h2>
-        <button class="btn btn-primary shadow-sm rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah">
-            <i class="bi bi-plus-circle me-2"></i>Tambah Matakuliah
-        </button>
+        
+        {{-- 🔒 HANYA ADMIN & OPERATOR YANG BISA TAMBAH MATAKULIAH --}}
+        @if(in_array(auth()->user()->role, ['admin', 'operator']))
+            <button class="btn btn-primary shadow-sm rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                <i class="bi bi-plus-circle me-2"></i>Tambah Matakuliah
+            </button>
+        @endif
     </div>
 
     @if(session('success'))
@@ -27,7 +31,12 @@
                             <th class="py-3">Nama Matakuliah</th>
                             <th width="10%" class="text-center py-3">SKS</th>
                             <th width="12%" class="text-center py-3">Semester</th>
-                            <th width="20%" class="text-center py-3">Status Validasi</th> <th width="15%" class="text-center py-3">Aksi</th>
+                            <th width="20%" class="text-center py-3">Status Validasi</th>
+                            
+                            {{-- 🔒 KOLOM AKSI HANYA TAMPIL UNTUK ADMIN & OPERATOR --}}
+                            @if(in_array(auth()->user()->role, ['admin', 'operator']))
+                                <th width="15%" class="text-center py-3">Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -55,6 +64,8 @@
                                 @endif
                             </td>
 
+                            {{-- 🔒 TOMBOL AKSI HANYA TAMPIL UNTUK ADMIN & OPERATOR --}}
+                            @if(in_array(auth()->user()->role, ['admin', 'operator']))
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <button class="btn btn-sm btn-outline-warning rounded-3 fw-bold px-2.5" data-bs-toggle="modal" data-bs-target="#modalEdit{{ $c->id }}">
@@ -69,8 +80,11 @@
                                     </form>
                                 </div>
                             </td>
+                            @endif
                         </tr>
 
+                        {{-- MODAL EDIT JUGA DIBUNGKUS AGAR TIDAK DIRENDER UNTUK ROLE LAIN --}}
+                        @if(in_array(auth()->user()->role, ['admin', 'operator']))
                         <div class="modal fade" id="modalEdit{{ $c->id }}" tabindex="-1">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content border-0 shadow rounded-4">
@@ -108,6 +122,8 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
+
                         @endforeach
                     </tbody>
                 </table>
@@ -116,6 +132,8 @@
     </div>
 </div>
 
+{{-- 🔒 MODAL TAMBAH HANYA DITERAPKAN UNTUK ADMIN & OPERATOR --}}
+@if(in_array(auth()->user()->role, ['admin', 'operator']))
 <div class="modal fade" id="modalTambah" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
@@ -153,4 +171,5 @@
         </div>
     </div>
 </div>
+@endif
 @endsection

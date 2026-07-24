@@ -1,19 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
     
-    <div class="card border-0 shadow-sm rounded-4 bg-gradient bg-primary text-white mb-4 overflow-hidden animate__animated animate__fadeIn">
-        <div class="card-body p-4 position-relative">
+    <div class="card border-0 shadow-sm rounded-4 bg-gradient bg-primary text-white mb-4 overflow-hidden">
+        <div class="card-body p-4">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h3 class="fw-bold mb-1"><i class="bi bi-calendar-check me-2"></i>Presensi Kuliah</h3>
-                    <p class="mb-0 opacity-75">Pantau persentase kehadiran Anda. Batas minimal kelayakan mengikuti UTS/UAS adalah <strong>80%</strong>.</p>
-                </div>
-                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-3 shadow-sm fs-6">
-                        <i class="bi bi-shield-exclamation me-1"></i> Batas Minimal: 80%
-                    </span>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-calendar-check me-2"></i>Sistem Presensi Informasi Akademik</h3>
+                    <p class="mb-0 opacity-75">Manajemen lembar kehadiran mahasiswa terintegrasi KRS mata kuliah.</p>
                 </div>
             </div>
         </div>
@@ -26,187 +21,182 @@
         </div>
     @endif
 
-    <div class="row g-4 animate__animated animate__fadeInUp">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-3 bg-white">
-                <div class="card-body p-4">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="py-3 px-4">Mata Kuliah</th>
-                                    <th class="text-center">Total Pertemuan</th>
-                                    <th class="text-center">Hadir</th>
-                                    <th class="text-center" style="width: 250px;">Persentase Kehadiran</th>
-                                    <th class="text-center">Syarat UTS / UAS</th>
-                                    @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'dosen' || Auth::user()->role === 'operator' || Auth::user()->role === 'kaprodi'))
-                                        <th class="text-center">Aksi</th>
-                                    @endif
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($rekapAbsen as $ra)
-                                <tr>
-                                    <td class="fw-semibold text-dark py-3 px-4">{{ $ra->nama_mk ?? 'Pemrograman Web 2' }}</td>
-                                    <td class="text-center fw-bold text-secondary">{{ $ra->total_pertemuan ?? 0 }}x</td>
-                                    <td class="text-center fw-bold text-success">{{ $ra->total_hadir ?? 0 }}x</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <span class="me-2 fw-bold" style="min-width: 45px;">{{ ($ra->persentase ?? 0) . '%' }}</span>
-                                            <div class="progress w-100" style="height: 8px;">
-                                                <div class="progress-bar {{ ($ra->persentase ?? 0) >= 80 ? 'bg-success' : 'bg-danger' }}" 
-                                                     role="progressbar" 
-                                                     style="width: {{ ($ra->persentase ?? 0) . '%' }}" 
-                                                     aria-valuenow="{{ $ra->persentase ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        @if(($ra->persentase ?? 0) >= 80)
-                                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 border border-success border-opacity-20">
-                                                <i class="bi bi-check-circle-fill me-1"></i> Lolos (Siap Ujian)
-                                            </span>
-                                        @else
-                                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 border border-danger border-opacity-20">
-                                                <i class="bi bi-x-circle-fill me-1"></i> Cekal (&lt; 80%)
-                                            </span>
-                                        @endif
-                                    </td>
-                                    @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'dosen' || Auth::user()->role === 'operator' || Auth::user()->role === 'kaprodi'))
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-primary rounded-3 fw-bold shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#modalInputAbsen{{ $ra->course_id }}">
-                                                <i class="bi bi-pencil-square me-1"></i> Kelola Absen
-                                            </button>
-                                        </td>
-                                    @endif
-                                </tr>
+    <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-funnel text-primary me-2"></i>Pilih Kelas Pembelajaran</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-secondary">Mata Kuliah Aktif:</label>
+                    <select class="form-select rounded-3 p-2.5 border-2 border-light shadow-sm text-dark fw-semibold" id="selectMatkul">
+                        <option value="">-- Pilih Mata Kuliah untuk Membuka Lembar Presensi --</option>
+                        @foreach($rekapAbsen as $ra)
+                            <option value="{{ $ra->course_id }}">{{ $ra->nama_mk }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Filter Angkatan:</label>
+                    <select class="form-select rounded-3 p-2.5 border-2 border-light shadow-sm text-dark fw-semibold" id="selectAngkatan">
+                        <option value="">Semua Angkatan</option>
+                        @foreach($daftarAngkatan as $angkatan)
+                            <option value="{{ $angkatan }}">{{ $angkatan }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-                                @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'dosen' || Auth::user()->role === 'operator' || Auth::user()->role === 'kaprodi'))
-                                <div class="modal fade" id="modalInputAbsen{{ $ra->course_id }}" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-md modal-dialog-centered">
-                                        <div class="modal-content border-0 shadow rounded-4">
-                                            <div class="modal-header bg-light border-bottom py-3 px-4">
-                                                <h5 class="modal-title fw-bold text-dark">
-                                                    <i class="bi bi-person-check-fill text-primary me-2"></i> Lembar Absen: {{ $ra->nama_mk }}
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <form action="{{ route('presensi.storeMassal') }}" method="POST">
-                                                @csrf
-                                                <input type="hidden" name="course_id" value="{{ $ra->course_id }}">
-                                                
-                                                <div class="modal-body p-4">
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-bold text-secondary">Tanggal Perkuliahan</label>
-                                                        <input type="date" name="tanggal" class="form-control rounded-3" value="{{ date('Y-m-d') }}" required>
-                                                    </div>
-
-                                                    <div class="row mb-3">
-                                                        <div class="col-6">
-                                                            <label class="form-label fw-bold text-secondary">Angkatan</label>
-                                                            <select class="form-select rounded-3 filter-angkatan" data-course="{{ $ra->course_id }}" name="angkatan" required>
-                                                                <option value="">-- Pilih Angkatan --</option>
-                                                                @foreach($daftarAngkatan ?? ['2023', '2024', '2025'] as $ang)
-                                                                    <option value="{{ $ang }}">{{ $ang }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <label class="form-label fw-bold text-secondary">Semester</label>
-                                                            <select class="form-select rounded-3 filter-semester" data-course="{{ $ra->course_id }}" name="semester" required>
-                                                                <option value="">-- Pilih Semester --</option>
-                                                                @for($i = 1; $i <= 8; $i++)
-                                                                    <option value="{{ $i }}">Semester {{ $i }}</option>
-                                                                @endfor
-                                                            </select>
-                                                        </div>
-                                                    </div>
-
-                                                    <hr class="text-muted opacity-25">
-                                                    <label class="form-label fw-bold text-dark d-block mb-2"><i class="bi bi-people me-1 text-primary"></i> Daftar Mahasiswa Kelas:</label>
-
-                                                    <div class="attendance-list border rounded-3 p-2 bg-light bg-opacity-25" id="wadahMahasiswa{{ $ra->course_id }}" style="max-height: 250px; overflow-y: auto;">
-                                                        <div class="text-center text-muted p-4 small">
-                                                            <i class="bi bi-funnel d-block fs-3 mb-2 text-black-50"></i>
-                                                            Silahkan pilih Angkatan dan Semester terlebih dahulu untuk menyaring daftar mahasiswa.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer bg-light border-0 py-3 px-4">
-                                                    <button type="button" class="btn btn-secondary rounded-3 fw-bold px-3" data-bs-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-primary rounded-3 fw-bold shadow-sm px-4">Simpan Presensi</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">
-                                        <i class="bi bi-exclamation-circle me-1"></i> Belum ada data riwayat absensi berjalan pada database Anda.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-secondary">Tanggal Hari Ini:</label>
+                    <input type="date" id="inputTanggal" class="form-control rounded-3 p-2.5 bg-light fw-semibold text-dark border-2 border-light" value="{{ date('Y-m-d') }}">
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden d-none mb-5" id="panelLembarAbsen">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0"><i class="bi bi-journal-check text-primary me-2"></i>Rekapitulasi & Lembar Presensi Kelas</h5>
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold" id="badgeNamaMatkul"></span>
+        </div>
+
+        <form action="{{ route('presensi.storeMassal') }}" method="POST" class="m-0">
+            @csrf
+            <input type="hidden" name="course_id" id="hiddenCourseId">
+            <input type="hidden" name="tanggal" id="hiddenTanggal">
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-light border-bottom text-secondary small text-uppercase">
+                            <tr>
+                                <th class="text-center py-3" width="5%">No</th>
+                                <th class="py-3" width="25%">Nama Mahasiswa</th>
+                                <th class="py-3" width="15%">NPM / NIM</th>
+                                <th class="text-center py-3" width="20%">Riwayat Kumulatif (H / S / I / A)</th>
+                                <th class="text-center py-3" width="15%">Persentase (%)</th>
+                                <th class="text-center py-3" width="20%">Input / Ubah Status Hari Ini</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wadahMahasiswaUtama" class="border-0 text-dark">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if(Auth::check() && (Auth::user()->role === 'dosen' || Auth::user()->role === 'kaprodi' || Auth::user()->role === 'operator' || Auth::user()->role === 'admin'))
+            <div class="card-footer bg-light border-top py-3 px-4 text-end" id="footerSimpan">
+                <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-bold shadow-sm">
+                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Simpan & Perbarui Presensi
+                </button>
+            </div>
+            @endif
+        </form>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('.filter-angkatan, .filter-semester').on('change', function() {
-        let courseId = $(this).data('course');
-        let angkatan = $('#modalInputAbsen' + courseId + ' .filter-angkatan').val();
-        let semester = $('#modalInputAbsen' + courseId + ' .filter-semester').val();
-        let wadah = $('#wadahMahasiswa' + courseId);
+    console.log("AJAX Presensi Ready!");
+    let roleUser = "{{ Auth::user()->role ?? 'mahasiswa' }}";
 
-        if(angkatan && semester) {
-            wadah.html('<div class="text-center p-4 small text-secondary"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>Mencari mahasiswa aktif...</div>');
+    // Memicu pencarian otomatis saat Matkul, Angkatan, atau Tanggal diubah
+    $(document).on('change', '#selectMatkul, #selectAngkatan, #inputTanggal', function() {
+        let courseId = $('#selectMatkul').val();
+        let angkatan = $('#selectAngkatan').val();
+        let tanggal = $('#inputTanggal').val();
+        let textMatkul = $("#selectMatkul option:selected").text();
+        
+        $('#hiddenCourseId').val(courseId);
+        $('#hiddenTanggal').val(tanggal);
+
+        if (courseId && courseId !== "") {
+            $('#panelLembarAbsen').removeClass('d-none');
+            $('#badgeNamaMatkul').text(textMatkul);
+            
+            $('#wadahMahasiswaUtama').html('<tr><td colspan="6" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat riwayat & progress bar kehadiran...</td></tr>');
 
             $.ajax({
                 url: "{{ route('presensi.getMahasiswa') }}",
                 type: "GET",
-                data: {
-                    angkatan: angkatan,
-                    semester: semester,
-                    course_id: courseId
-                },
+                data: { course_id: courseId, tanggal: tanggal, angkatan: angkatan },
+                dataType: "json",
                 success: function(response) {
                     let html = '';
-                    if(response.mahasiswa.length > 0) {
-                        response.mahasiswa.forEach(function(mhs) {
+                    if (response.mahasiswa && response.mahasiswa.length > 0) {
+                        response.mahasiswa.forEach(function(mhs, index) {
+                            
+                            // Hitung warna bar persentase dinamis
+                            let barColor = mhs.persentase >= 80 ? 'bg-success' : 'bg-danger';
+
                             html += `
-                            <div class="d-flex align-items-center justify-content-between p-2 border-bottom border-light bg-white mb-1 rounded-3 shadow-sm">
-                                <div class="fw-semibold text-dark small">${mhs.name} <br><small class="text-muted font-monospace">${mhs.npm ?? 'NPM N/A'}</small></div>
-                                <div class="btn-group" role="group">
-                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="H${response.course_id}_${mhs.id}" value="Hadir" checked>
-                                    <label class="btn btn-outline-success btn-xs px-2 py-1 small" for="H${response.course_id}_${mhs.id}">H</label>
+                            <tr>
+                                <td class="text-center fw-bold text-secondary py-3">${index + 1}</td>
+                                <td class="fw-semibold">${mhs.name}</td>
+                                <td class="font-monospace text-muted small">${mhs.npm}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 mx-0.5">${mhs.hadir}H</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 mx-0.5">${mhs.sakit}S</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning px-2 py-1 mx-0.5">${mhs.izin}I</span>
+                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 mx-0.5">${mhs.alfa}A</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <span class="me-2 fw-bold small">${mhs.persentase}%</span>
+                                        <div class="progress" style="height: 6px; width: 70px;">
+                                            <div class="progress-bar ${barColor}" style="width: ${mhs.persentase}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">`;
 
-                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="S${response.course_id}_${mhs.id}" value="Sakit">
-                                    <label class="btn btn-outline-primary btn-xs px-2 py-1 small" for="S${response.course_id}_${mhs.id}">S</label>
+                            // Cek Hak Akses Menu Aksi
+                            if (roleUser === 'dosen' || roleUser === 'kaprodi' || roleUser === 'operator' || roleUser === 'admin') {
+                                html += `
+                                <div class="btn-group shadow-sm rounded-3 overflow-hidden" role="group">
+                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="H_${mhs.id}" value="Hadir" ${mhs.status_hari_ini === 'Hadir' ? 'checked' : ''}>
+                                    <label class="btn btn-outline-success btn-xs px-2.5 py-1 small" for="H_${mhs.id}">H</label>
 
-                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="I${response.course_id}_${mhs.id}" value="Izin">
-                                    <label class="btn btn-outline-warning btn-xs px-2 py-1 small" for="I${response.course_id}_${mhs.id}">I</label>
+                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="S_${mhs.id}" value="Sakit" ${mhs.status_hari_ini === 'Sakit' ? 'checked' : ''}>
+                                    <label class="btn btn-outline-primary btn-xs px-2.5 py-1 small" for="S_${mhs.id}">S</label>
 
-                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="A${response.course_id}_${mhs.id}" value="Alfa">
-                                    <label class="btn btn-outline-danger btn-xs px-2 py-1 small" for="A${response.course_id}_${mhs.id}">A</label>
-                                </div>
-                            </div>`;
+                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="I_${mhs.id}" value="Izin" ${mhs.status_hari_ini === 'Izin' ? 'checked' : ''}>
+                                    <label class="btn btn-outline-warning btn-xs px-2.5 py-1 small" for="I_${mhs.id}">I</label>
+
+                                    <input type="radio" class="btn-check" name="status[${mhs.id}]" id="A_${mhs.id}" value="Alfa" ${mhs.status_hari_ini === 'Alfa' ? 'checked' : ''}>
+                                    <label class="btn btn-outline-danger btn-xs px-2.5 py-1 small" for="A_${mhs.id}">A</label>
+                                </div>`;
+                            } else {
+    // TAMPILAN MAHASISWA: Tombol dikunci, hanya memunculkan Badge Status Kehadiran hari ini
+    let badgeHariIni = 'bg-success';
+    if(mhs.status_hari_ini === 'Sakit') badgeHariIni = 'bg-primary';
+    if(mhs.status_hari_ini === 'Izin') badgeHariIni = 'bg-warning';
+    if(mhs.status_hari_ini === 'Alfa') badgeHariIni = 'bg-danger';
+    if(mhs.status_hari_ini === 'Belum Absen') badgeHariIni = 'bg-secondary text-white';
+
+    html += `<span class="badge ${badgeHariIni} px-3 py-1.5 rounded-pill fw-bold text-uppercase shadow-sm small">${mhs.status_hari_ini}</span>`;
+}
+
+                            html += `</td></tr>`;
                         });
+                        // Footer tombol simpan otomatis disembunyikan jika role-nya mahasiswa
+if(roleUser === 'mahasiswa') {
+    $('#footerSimpan').hide();
+} else {
+    $('#footerSimpan').show();
+}
                     } else {
-                        html = '<div class="text-center text-danger p-4 small"><i class="bi bi-x-circle d-block fs-4 mb-2"></i>Tidak ada mahasiswa aktif pada kriteria Angkatan & Semester ini.</div>';
+                        html = '<tr><td colspan="6" class="text-center py-5 text-danger fw-semibold"><i class="bi bi-person-x-fill fs-3 d-block mb-2 text-secondary"></i>Tidak ada data mahasiswa terdaftar pada filter kelas ini.</td></tr>';
+                        $('#footerSimpan').hide();
                     }
-                    wadah.html(html);
+                    $('#wadahMahasiswaUtama').html(html);
+                },
+                error: function() {
+                    $('#wadahMahasiswaUtama').html('<tr><td colspan="6" class="text-center py-5 text-danger">Gagal memuat rekap data dari server.</td></tr>');
                 }
             });
+        } else {
+            $('#panelLembarAbsen').addClass('d-none');
         }
     });
 });

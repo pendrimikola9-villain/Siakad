@@ -23,7 +23,7 @@ class RegisteredUserController extends Controller
         return view('auth.register');
     }
 
-    /**
+   /**
      * Handle an incoming registration request.
      *
      * @throws ValidationException
@@ -31,21 +31,24 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'name'     => ['required', 'string', 'max:255'],
+            'nim'      => ['required', 'string', 'max:50', 'unique:'.User::class.',email'],
+            'password' => ['required', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,   
+            'email'    => $request->nim,    
+            'role'     => 'mahasiswa',      
             'password' => Hash::make($request->password),
         ]);
 
+        // 🟢 TEMPEL DI SINI (Menggantikan baris Auth::login lama)
         event(new Registered($user));
 
-        Auth::login($user);
+        // Auth::login($user); // 🟢 Ini sudah dimatikan/dikomentari agar tidak otomatis login
 
-        return redirect(route('dashboard', absolute: false));
+        // Alihkan ke halaman login sambil membawa pesan sukses alert
+        return redirect()->route('login')->with('success', 'Aktivasi akun berhasil! Silakan login menggunakan NIM dan Password kamu.');
     }
 }

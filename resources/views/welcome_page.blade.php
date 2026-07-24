@@ -13,7 +13,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: #1a2c3d;
         }
         .navbar-brand img {
             max-height: 50px;
@@ -49,11 +49,11 @@
     <img src="{{ asset('img/logo-umb.png') }}" alt="Logo UMB" class="me-2" style="height: 45px; width: auto;">
     <div>
         <span class="d-block mb-0 lh-1 fs-5">SIAKAD UMB</span>
-        <small class="text-muted d-block" style="font-size: 0.7rem;">Univ. Muhammadiyah Banjarmasin</small>
+        <small class="text-muted d-block" style="font-size: 0.7rem;">Universitas Muhammadiyah Banjarmasin</small>
     </div>
 </a>
            <div class="ms-auto">
-    <a href="{{ route('login') }}" class="btn btn-outline-primary fw-bold px-3 me-2 rounded-3">Login</a>
+    <a href="{{ route('login') }}" class="btn btn-primary fw-bold px-3 rounded-3">Login</a>
     <a href="{{ route('register') }}" class="btn btn-primary fw-bold px-3 rounded-3">Daftar</a>
 </div>
         </div>
@@ -71,8 +71,8 @@
                     <p class="lead mb-4 opacity-75">Platform digital terintegrasi untuk mempermudah manajemen perkuliahan, pengisian KRS, rekapitulasi nilai, serta transparansi logbook bimbingan mahasiswa dan dosen secara riil.</p>
                     
                    <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
-    <a href="{{ route('login') }}" class="btn btn-white bg-white text-primary btn-lg fw-bold px-4 py-3 rounded-3 shadow">
-        <i class="bi bi-box-arrow-in-right me-2"></i> Portal Login SIAKAD
+    <a href="{{ route('login') }}" class="btn btn-outline-light btn-lg fw-bold px-4 py-3 rounded-3w">
+        <i class="bi bi-person-plus me-2"></i> Portal Login SIAKAD
     </a>
     <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg fw-bold px-4 py-3 rounded-3">
         <i class="bi bi-person-plus me-2"></i> Registrasi Akun Baru
@@ -87,7 +87,8 @@
         <img src="{{ asset('img/logo-umb.png') }}" alt="Universitas Muhammadiyah Banjarmasin" class="img-fluid animate__animated animate__pulse animate__infinite animate__slow" style="max-height: 140px; width: auto;">
     </div>
     <h3 class="fw-bold text-white mt-3">Universitas Muhammadiyah Banjarmasin</h3>
-    <p class="small text-white-50 mb-0">Fakultas Teknik — Program Studi Teknik Informatika</p>
+    <p class="small text-white-50 mb-0">Merupakan perguruan tinggi yang berkomitmen mencetak lulusan unggul, profesional, dan berkarakter Islami. Dengan didukung tenaga pendidik berkualitas, fasilitas pembelajaran modern, serta berbagai program akademik yang relevan dengan kebutuhan zaman, universitas ini terus menghadirkan pendidikan yang inovatif dan berdaya saing. Melalui Sistem Informasi Akademik (SIAKAD), mahasiswa, dosen, dan tenaga kependidikan dapat mengakses berbagai layanan akademik secara mudah, cepat, dan terintegrasi untuk mendukung proses pembelajaran yang efektif dan efisien.
+</p>
 </div>
                 </div>
             </div>

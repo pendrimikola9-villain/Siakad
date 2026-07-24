@@ -125,7 +125,11 @@
 <body>
 
     <div class="auth-container floating-card animate__animated animate__zoomIn">
-        
+        @if(session('success'))
+    <div class="alert alert-success py-2 small bg-success bg-opacity-70 text-white border-0 animate__animated animate__fadeIn">
+        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+    </div>
+@endif
         <div id="login-form" class="animate__animated">
             <div class="text-center mb-4">
                 <img src="{{ asset('img/logo-umb.png') }}" 
@@ -179,51 +183,51 @@
                 <p class="text-white-50 small">Lengkapi verifikasi data induk mahasiswa.</p>
             </div>
 
-            <form action="{{ route('register.process') }}" method="POST">
-                @csrf
-                
-                <div class="mb-3">
-                    <label class="form-label text-white small fw-bold">Nama Lengkap</label>
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-custom"><i class="bi bi-fonts"></i></span>
-                        <input type="text" name="nama_lengkap" class="form-control form-control-custom" placeholder="Masukkan Nama Lengkap Sesuai Ijazah" required>
-                    </div>
-                </div>
+           <form action="{{ route('register') }}" method="POST">
+    @csrf
+    
+    <div class="mb-3">
+        <label class="form-label text-white small fw-bold">Nama Lengkap</label>
+        <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-fonts"></i></span>
+            <input type="text" name="name" class="form-control form-control-custom" placeholder="Masukkan Nama Lengkap Sesuai Ijazah" value="{{ old('name') }}" required autofocus>
+        </div>
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-white small fw-bold">Nomor Induk Mahasiswa (NIM)</label>
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-custom"><i class="bi bi-card-text"></i></span>
-                        <input type="text" name="nim" class="form-control form-control-custom" placeholder="Masukkan NIM Resmi" required>
-                    </div>
-                </div>
+    <div class="mb-3">
+        <label class="form-label text-white small fw-bold">Nomor Induk Mahasiswa (NIM)</label>
+        <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-card-text"></i></span>
+            <input type="text" name="nim" class="form-control form-control-custom" placeholder="Masukkan NIM Resmi" value="{{ old('nim') }}" required>
+        </div>
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-white small fw-bold">Email Kampus / Aktif</label>
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-custom"><i class="bi bi-envelope-fill"></i></span>
-                        <input type="email" name="email" class="form-control form-control-custom" placeholder="username@student.umb.ac.id" required>
-                    </div>
-                </div>
+    <div class="mb-3">
+        <label class="form-label text-white small fw-bold">Email Kampus / Aktif</label>
+        <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-envelope-fill"></i></span>
+            <input type="email" name="email" class="form-control form-control-custom" placeholder="username@student.umb.ac.id" value="{{ old('email') }}" required>
+        </div>
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label text-white small fw-bold">Sandi Baru</label>
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-custom"><i class="bi bi-eye-slash-fill"></i></span>
-                        <input type="password" name="password" class="form-control form-control-custom" placeholder="Buat Password" required>
-                    </div>
-                </div>
+    <div class="mb-3">
+        <label class="form-label text-white small fw-bold">Sandi Baru</label>
+        <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-eye-slash-fill"></i></span>
+            <input type="password" name="password" class="form-control form-control-custom" placeholder="Buat Password" required autocomplete="new-password">
+        </div>
+    </div>
 
-                <div class="mb-4">
-                    <label class="form-label text-white small fw-bold">Konfirmasi Sandi Baru</label>
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-custom"><i class="bi bi-shield-check"></i></span>
-                        <input type="password" class="form-control form-control-custom" placeholder="Ulangi Password" required>
-                    </div>
-                </div>
+    <div class="mb-4">
+        <label class="form-label text-white small fw-bold">Konfirmasi Sandi Baru</label>
+        <div class="input-group">
+            <span class="input-group-text input-group-text-custom"><i class="bi bi-shield-check"></i></span>
+            <input type="password" name="password_confirmation" class="form-control form-control-custom" placeholder="Ulangi Password" required>
+        </div>
+    </div>
 
-                <button type="submit" class="btn btn-auth w-100 mb-3">AKTIVASI AKUN <i class="bi bi-check-circle"></i></button>
-            </form>
+    <button type="submit" class="btn btn-auth w-100 mb-3">AKTIVASI AKUN <i class="bi bi-check-circle"></i></button>
+</form>
 
             <div class="text-center mt-3">
                 <p class="text-white-50 small">Sudah aktivasi? <a href="#" id="btn-to-login" class="toggle-link">Kembali Login</a></p>

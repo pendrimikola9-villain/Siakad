@@ -7,7 +7,7 @@
         <div class="card-body p-4 position-relative">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h3 class="fw-bold mb-1"><i class="bi bi-calendar3 me-2"></i>Jadwal Kuliah (SIPLAR)</h3>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-calendar3 me-2"></i>Jadwal Kuliah</h3>
                     <p class="mb-0 opacity-75">Manajemen plot jadwal kelas, waktu perkuliahan reguler, serta lokasi ruangan kelas.</p>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
@@ -31,7 +31,8 @@
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold text-dark mb-0"><i class="bi bi-table text-primary me-2"></i>Daftar Kelas & Informasi Ruangan</h5>
             
-            @if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'))
+            {{-- 🔒 HANYA ADMIN & OPERATOR YANG BISA TAMBAH JADWAL --}}
+            @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'operator']))
                 <button class="btn btn-primary px-3 py-2 rounded-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahJadwal">
                     <i class="bi bi-plus-circle me-1"></i> Tambah Jadwal
                 </button>
@@ -49,7 +50,9 @@
                             <th class="py-3" width="20%">Dosen Pengampu</th>
                             <th class="py-3" width="15%">Ruangan / Lab</th>
                             <th class="text-center py-3" width="20%">Status Dosen</th>
-                            @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'kaprodi' || Auth::user()->role === 'operator'))
+                            
+                            {{-- 🔒 KOLOM AKSI HANYA TAMPIL UNTUK ADMIN, KAPRODI, & OPERATOR --}}
+                            @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'kaprodi', 'operator']))
                                 <th width="15%" class="text-center py-3">Aksi</th>
                             @endif
                         </tr>
@@ -89,14 +92,14 @@
                                     </span>
                                 </td>
 
-                            <td class="text-center py-3">
-                                    @if(($jadwal->status_dosen ?? 'Berhadir') === 'Berhadir')
+                                <td class="text-center py-3">
+                                    @if(str_contains($jadwal->status_dosen ?? 'Berhadir', 'Berhadir'))
                                         <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 border border-success border-opacity-20 rounded-pill fw-bold">
-                                            <i class="bi bi-person-check-fill me-1"></i> Berhadir
+                                            <i class="bi bi-person-check-fill me-1"></i> {{ $jadwal->status_dosen }}
                                         </span>
-                                    @elseif(($jadwal->status_dosen ?? '') === 'Kelas Online')
+                                    @elseif(str_contains($jadwal->status_dosen ?? '', 'Online'))
                                         <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 border border-warning border-opacity-20 rounded-pill fw-bold">
-                                            <i class="bi bi-laptop me-1"></i> Kelas Online
+                                            <i class="bi bi-laptop me-1"></i> {{ $jadwal->status_dosen }}
                                         </span>
                                     @else
                                         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 border border-danger border-opacity-20 rounded-pill fw-bold">
@@ -111,34 +114,35 @@
                                         </div>
                                     @endif
 
-                                    @if(Auth::check() && (Auth::user()->role === 'dosen' || Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin'))
+                                    {{-- 🔒 UBAH STATUS KEHADIRAN: DAPAT DILAKUKAN DOSEN, KAPRODI, & ADMIN --}}
+                                    @if(Auth::check() && in_array(Auth::user()->role, ['dosen', 'kaprodi', 'admin']))
                                         <button type="button" class="btn btn-sm btn-link text-primary p-0 d-block mx-auto mt-2 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateStatusModal{{ $jadwal->id }}">
                                             <i class="bi bi-pencil-square"></i> Ubah Status
                                         </button>
                                     @endif
                                 </td>
 
-            @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'kaprodi' || Auth::user()->role === 'operator'))
-    <td class="text-center py-3">
-        <div class="d-inline-flex align-items-center justify-content-center gap-2 w-100">
-            
-            <button type="button" class="btn btn-warning text-white shadow-sm d-flex align-items-center justify-content-center rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditJadwal{{ $jadwal->id }}" style="width: 80px; height: 38px; font-size: 0.85rem;">
-                <i class="bi bi-pencil me-1"></i> Edit
-            </button>
-            
-            <form action="{{ route('jadwal.destroy', $jadwal->id) }}" method="POST" class="m-0">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center rounded-3 fw-bold" onclick="return confirm('Yakin ingin menghapus jadwal kuliah ini?')" style="width: 80px; height: 38px; font-size: 0.85rem;">
-                    <i class="bi bi-trash me-1"></i> Hapus
-                </button>
-            </form>
-
-        </div>
-    </td>
-@endif
+                                {{-- 🔒 TOMBOL EDIT & HAPUS JADWAL (ADMIN, KAPRODI, OPERATOR) --}}
+                                @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'kaprodi', 'operator']))
+                                    <td class="text-center py-3">
+                                        <div class="d-inline-flex align-items-center justify-content-center gap-2 w-100">
+                                            <button type="button" class="btn btn-warning text-white shadow-sm d-flex align-items-center justify-content-center rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalEditJadwal{{ $jadwal->id }}" style="width: 80px; height: 38px; font-size: 0.85rem;">
+                                                <i class="bi bi-pencil me-1"></i> Edit
+                                            </button>
+                                            
+                                            <form action="{{ route('jadwal.destroy', $jadwal->id) }}" method="POST" class="m-0">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center rounded-3 fw-bold" onclick="return confirm('Yakin ingin menghapus jadwal kuliah ini?')" style="width: 80px; height: 38px; font-size: 0.85rem;">
+                                                    <i class="bi bi-trash me-1"></i> Hapus
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
                             </tr>
 
+                            {{-- MODAL UPDATE STATUS KEHADIRAN DOSEN --}}
                             <div class="modal fade" id="updateStatusModal{{ $jadwal->id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content border-0 shadow rounded-4">
@@ -175,7 +179,8 @@
                                 </div>
                             </div>
 
-                          @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'kaprodi' || Auth::user()->role === 'operator'))
+                            {{-- MODAL EDIT JADWAL --}}
+                            @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'kaprodi', 'operator']))
                             <div class="modal fade" id="modalEditJadwal{{ $jadwal->id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content border-0 shadow rounded-4">
@@ -255,7 +260,7 @@
 
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="{{ Auth::check() && in_array(Auth::user()->role, ['admin', 'kaprodi', 'operator']) ? 7 : 6 }}" class="text-center py-5 text-muted">
                                     <div class="py-4">
                                         <i class="bi bi-calendar-x fs-1 text-black-50 d-block mb-3"></i>
                                         <span class="fw-semibold d-block text-secondary">Belum ada data jadwal kuliah reguler.</span>
@@ -277,7 +282,8 @@
     </div>
 </div>
 
-@if(Auth::check() && (Auth::user()->role === 'kaprodi' || Auth::user()->role === 'admin' || Auth::user()->role === 'operator'))
+{{-- 🔒 MODAL TAMBAH JADWAL: HANYA DITERAPKAN UNTUK ADMIN & OPERATOR --}}
+@if(Auth::check() && in_array(Auth::user()->role, ['admin', 'operator']))
 <div class="modal fade" id="modalTambahJadwal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
